@@ -1,0 +1,9 @@
+{
+	global: {
+		logdirectory: "logs"
+	},
+	twitch: {
+		user: "",
+		oauthtoken: ""
+	}
+}
