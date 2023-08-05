@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\zsemlebot.repository\zsemlebot.repository.csproj" />
     <ProjectReference Include="..\zsemlebot.twitch\zsemlebot.twitch.csproj" />
   </ItemGroup>
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using zsemlebot.repository;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services
@@ -11,9 +12,13 @@ namespace zsemlebot.services
         private IrcClient Client { get; set; }
         private int ReconnectCount { get; set; }
 
+        private TwitchRepository TwitchRepository { get; set; }
+
         public TwitchService()
         {
             ReconnectCount = 0;
+
+            TwitchRepository = new TwitchRepository();
         }
 
         public void ConnectToTwitch()
@@ -28,6 +33,8 @@ namespace zsemlebot.services
 
         public void JoinAndTalk()
         {
+            Client.JoinChannel("#zomle");
+            Client.SendPrivMsg("#zomle", "peepoGlad");
         }
 
         public void HandleMessagesWorker()
@@ -96,7 +103,20 @@ namespace zsemlebot.services
         {
             switch (message.Command)
             {
-                
+                case "PRIVMSG":
+                    HandlePrivMsg(message);
+                    break;
+            }
+        }
+
+        private void HandlePrivMsg(Message message)
+        {
+            var displayName = message.SourceUserName;
+            var userId = message.SourceUserId;
+
+            if (displayName != null && userId != 0)
+            {
+                TwitchRepository.UpdateTwitchUserName(userId, displayName); 
             }
         }
     }

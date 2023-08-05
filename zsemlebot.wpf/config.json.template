@@ -1,6 +1,8 @@
 {
 	global: {
-		logdirectory: "logs"
+		logdirectory: "logs",
+		dbdirectory: "db",
+		dbbackupdirectory: "db_backup"
 	},
 	twitch: {
 		user: "",

@@ -39,10 +39,17 @@ namespace zsemlebot.core
             Instance.Twitch = tmpConfig.Twitch;
             Instance.Global = tmpConfig.Global;
 
-            var fullLogDirectory = Path.Combine(Instance.Global.RootDirectory, Instance.Global.LogDirectory);
-            if (!Directory.Exists(fullLogDirectory))
+            CreateDirectory(Instance.Global.LogDirectory);
+            CreateDirectory(Instance.Global.DbDirectory);
+            CreateDirectory(Instance.Global.DbBackupDirectory);
+        }
+
+        private void CreateDirectory(string relativeDir)
+        {
+            var fullDirectoryPath = Path.Combine(Instance.Global.RootDirectory, relativeDir);
+            if (!Directory.Exists(fullDirectoryPath))
             {
-                Directory.CreateDirectory(fullLogDirectory);
+                Directory.CreateDirectory(fullDirectoryPath);
             }
         }
     }

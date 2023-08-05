@@ -12,7 +12,7 @@ namespace zsemlebot.core
         public Logger(string fileName)
         {
             FileName = fileName;
-            FilePath = Path.Combine(Configuration.Instance.Global.RootDirectory, Configuration.Instance.Global.LogDirectory, fileName);
+            FilePath = Path.Combine(Configuration.Instance.Global.FullLogDirectory, fileName);
 
             Writer = new StreamWriter(new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.Read));
         }
