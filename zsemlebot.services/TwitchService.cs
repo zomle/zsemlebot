@@ -1,18 +1,41 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using zsemlebot.core.EventArgs;
 using zsemlebot.repository;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
-    public class TwitchService
+    public class TwitchService 
     {
-        private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
+        private EventHandler<MessageReceivedArgs>? messageReceived;
+        public event EventHandler<MessageReceivedArgs> MessageReceived
+        {
+            add { messageReceived += value; }
+            remove { messageReceived -= value; }
+        }
+
+        private EventHandler<StatusChangedArgs>? statusChanged;
+        public event EventHandler<StatusChangedArgs> StatusChanged
+        {
+            add { statusChanged += value; }
+            remove { statusChanged -= value; }
+        }
+
+        private EventHandler<PrivMsgReceivedArgs>? privmsgReceived;
+        public event EventHandler<PrivMsgReceivedArgs> PrivmsgReceived
+        {
+            add { privmsgReceived += value; }
+            remove { privmsgReceived -= value; }
+        }
+
         private IrcClient Client { get; set; }
         private int ReconnectCount { get; set; }
 
         private TwitchRepository TwitchRepository { get; set; }
+
+        private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
 
         public TwitchService()
         {
@@ -26,6 +49,9 @@ namespace zsemlebot.services
             if (Client == null)
             {
                 Client = new IrcClient();
+                Client.StatusChanged += Client_StatusChanged;
+                Client.MessageReceived += Client_MessageReceived;
+
             }
             Client.Connect();
             new Thread(HandleMessagesWorker).Start();
@@ -80,10 +106,17 @@ namespace zsemlebot.services
 
         private bool Reconnect()
         {
+            //todo tear down previous connection if there is one active.
+
             var tmpClient = new IrcClient();
+            tmpClient.StatusChanged += Client_StatusChanged;
+            tmpClient.MessageReceived += Client_MessageReceived;
+
             var reconnected = tmpClient.Connect();
             if (reconnected)
             {
+                Client.StatusChanged -= Client_StatusChanged;
+                Client.MessageReceived -= Client_MessageReceived;
                 Client = tmpClient;
                 return true;
             }
@@ -109,15 +142,36 @@ namespace zsemlebot.services
             }
         }
 
-        private void HandlePrivMsg(Message message)
+        private void HandlePrivMsg(Message rawMessage)
         {
-            var displayName = message.SourceUserName;
-            var userId = message.SourceUserId;
+            var displayName = rawMessage.SourceUserName;
+            var userId = rawMessage.SourceUserId;
 
             if (displayName != null && userId != 0)
             {
                 TwitchRepository.UpdateTwitchUserName(userId, displayName); 
             }
+
+            var tokens = rawMessage.Params.Split(' ', 2);
+            var channel = tokens[0];
+            var message = tokens[1][1..];
+
+            privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, displayName, message));
+        }
+
+        private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
+        {
+            messageReceived?.Invoke(sender, e);
+        }
+
+        private void Client_StatusChanged(object? sender, StatusChangedArgs e)
+        {
+            statusChanged?.Invoke(sender, e);
+        }
+
+        public void SendCommand(string rawCommandText)
+        {
+            Client?.SendRawCommand(rawCommandText);
         }
     }
 }

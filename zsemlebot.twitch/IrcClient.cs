@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading;
 using zsemlebot.networklib;
 using zsemlebot.core;
+using zsemlebot.core.EventArgs;
 
 namespace zsemlebot.twitch
 {
@@ -21,7 +22,33 @@ namespace zsemlebot.twitch
     {
         private readonly TimeSpan PingFrequency = TimeSpan.FromSeconds(30);
 
-        public Status Status { get; private set; }
+        private EventHandler<MessageReceivedArgs>? messageReceived;
+        public event EventHandler<MessageReceivedArgs> MessageReceived
+        {
+            add { messageReceived += value; }
+            remove { messageReceived -= value; }
+        }
+
+        private EventHandler<StatusChangedArgs>? statusChanged;
+        public event EventHandler<StatusChangedArgs> StatusChanged
+        {
+            add { statusChanged += value; }
+            remove { statusChanged -= value; }
+        }
+
+        private Status status;
+        public Status Status
+        {
+            get { return status; }
+            private set
+            {
+                if (status != value)
+                {
+                    status = value;
+                    statusChanged?.Invoke(this, new StatusChangedArgs(value.ToString()));
+                }
+            }
+        }
 
         private Socket Socket { get; set; }
         private Thread ReadThread { get; set; }
@@ -30,7 +57,21 @@ namespace zsemlebot.twitch
         private Queue<Message> IncomingMessageQueue { get; set; }
         private TwitchRawLogger RawLogger { get; set; }
         private TwitchEventLogger EventLogger { get; set; }
-        private DateTime LastMessageReceivedAt { get; set; }
+        
+        private DateTime lastMessageReceivedAt;
+        private DateTime LastMessageReceivedAt
+        {
+            get { return lastMessageReceivedAt; }
+            set
+            {
+                if (lastMessageReceivedAt != value)
+                {
+                    lastMessageReceivedAt = value;
+                    messageReceived?.Invoke(this, new MessageReceivedArgs());
+                }
+            }
+        }
+
         private DateTime LastPingSentAt { get; set; }
 
         private static readonly object padlock = new object();
@@ -55,11 +96,11 @@ namespace zsemlebot.twitch
                 RawLogger = new TwitchRawLogger(now);
                 EventLogger = new TwitchEventLogger(now);
 
-                SendMessage("CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands");
+                SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands");
                 SendMessage($"PASS {Configuration.Instance.Twitch.OAuthToken}", "PASS ***");
                 SendMessage($"NICK {Configuration.Instance.Twitch.User}");
 
-                LastMessageReceivedAt = DateTime.Now;
+                lastMessageReceivedAt = DateTime.Now;
 
                 ReadThread = new Thread(ReadThreadWorker);
                 ReadThread.Start();
@@ -67,13 +108,17 @@ namespace zsemlebot.twitch
                 Status = Status.Connected;
                 return true;
             }
-            catch ( Exception ex) 
+            catch (Exception ex)
             {
                 Status = Status.Disconnected;
                 return false;
             }
         }
 
+        public void SendRawCommand(string rawCommandText)
+        {
+            SendMessage(rawCommandText);
+        }
 
         public void ReplayFile(string filePath)
         {
@@ -150,7 +195,7 @@ namespace zsemlebot.twitch
                     sent += tmp;
                 }
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 Status = Status.Disconnected;
             }
@@ -324,7 +369,7 @@ namespace zsemlebot.twitch
                     }
                 }
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 Status = Status.Disconnected;
             }

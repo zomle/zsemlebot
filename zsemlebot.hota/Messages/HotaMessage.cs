@@ -15,7 +15,7 @@ namespace zsemlebot.hota.Messages
 
         protected byte[] CreateMessageBuffer()
         {
-            if (Length == < 4)
+            if (Length < 4)
             {
                 throw new InvalidOperationException("Message length should be at least 4 (sizeof(Length) + sizeof(Type)).");
             }

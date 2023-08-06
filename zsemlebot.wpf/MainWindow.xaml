@@ -3,16 +3,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:zsemlebot.wpf"
+        xmlns:views="clr-namespace:zsemlebot.wpf.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800"
-        Loaded="Window_Loaded">
+        Title="zsemlebot 2" Height="450" Width="800">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition />
-            <RowDefinition />
-        </Grid.RowDefinitions>
-        <Button Grid.Row="0" Click="Connect_Click">Connect</Button>
-        <Button Grid.Row="1" Click="Replay_Click">Join and talk</Button>
+        <TabControl>
+            <TabItem Header="Overview">
+                <views:OverviewView DataContext="{Binding}" />
+            </TabItem>
+            <TabItem Header="Twitch">
+                <views:TwitchView DataContext="{Binding TwitchViewModel}" />
+            </TabItem>
+            <TabItem Header="Hota">
+                
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
