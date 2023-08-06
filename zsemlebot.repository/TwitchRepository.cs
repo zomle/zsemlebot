@@ -4,7 +4,6 @@ using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
 {
-
     public class TwitchRepository : RepositoryBase
     {
         private Dictionary<int, string> TwitchUsersById { get; set; }

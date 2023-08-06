@@ -7,20 +7,16 @@ using System.Threading;
 using zsemlebot.networklib;
 using zsemlebot.core;
 using zsemlebot.core.EventArgs;
+using System.Linq;
 
 namespace zsemlebot.twitch
 {
-    public enum Status
-    {
-        Initialized,
-        Connecting,
-        Connected,
-        Disconnected
-    }
 
     public class IrcClient : IDisposable
     {
         private readonly TimeSpan PingFrequency = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan RateLimitWindowSize = TimeSpan.FromSeconds(30);
+        private readonly int RateLimitMaxMessageCount = 20;
 
         private EventHandler<MessageReceivedArgs>? messageReceived;
         public event EventHandler<MessageReceivedArgs> MessageReceived
@@ -36,8 +32,8 @@ namespace zsemlebot.twitch
             remove { statusChanged -= value; }
         }
 
-        private Status status;
-        public Status Status
+        private TwitchStatus status;
+        public TwitchStatus Status
         {
             get { return status; }
             private set
@@ -53,11 +49,12 @@ namespace zsemlebot.twitch
         private Socket Socket { get; set; }
         private Thread ReadThread { get; set; }
         private Thread PingThread { get; set; }
+        private Thread SendThread { get; set; }
 
         private Queue<Message> IncomingMessageQueue { get; set; }
         private TwitchRawLogger RawLogger { get; set; }
         private TwitchEventLogger EventLogger { get; set; }
-        
+
         private DateTime lastMessageReceivedAt;
         private DateTime LastMessageReceivedAt
         {
@@ -74,12 +71,17 @@ namespace zsemlebot.twitch
 
         private DateTime LastPingSentAt { get; set; }
 
+        private Queue<OutgoingMessage> OutgoingMessageQueue { get; set; }
+        private DateTime RateLimitWindowStart { get; set; }
+        private int MessagesSentInRateLimitWindow { get; set; }
+
         private static readonly object padlock = new object();
 
         public IrcClient()
         {
             IncomingMessageQueue = new Queue<Message>();
-            Status = Status.Initialized;
+            OutgoingMessageQueue = new Queue<OutgoingMessage>();
+            Status = TwitchStatus.Initialized;
         }
 
         public bool Connect()
@@ -87,7 +89,7 @@ namespace zsemlebot.twitch
             var now = DateTime.Now;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            Status = Status.Connecting;
+            Status = TwitchStatus.Connecting;
 
             try
             {
@@ -95,6 +97,9 @@ namespace zsemlebot.twitch
 
                 RawLogger = new TwitchRawLogger(now);
                 EventLogger = new TwitchEventLogger(now);
+
+                SendThread = new Thread(SendThreadWorker);
+                SendThread.Start();
 
                 SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands");
                 SendMessage($"PASS {Configuration.Instance.Twitch.OAuthToken}", "PASS ***");
@@ -105,12 +110,12 @@ namespace zsemlebot.twitch
                 ReadThread = new Thread(ReadThreadWorker);
                 ReadThread.Start();
 
-                Status = Status.Connected;
+                Status = TwitchStatus.Connected;
                 return true;
             }
             catch (Exception ex)
             {
-                Status = Status.Disconnected;
+                Status = TwitchStatus.Disconnected;
                 return false;
             }
         }
@@ -185,21 +190,22 @@ namespace zsemlebot.twitch
 
         private void SendMessage(string message, string logMessageOverride = null)
         {
-            try
+            OutgoingMessageQueue.Enqueue(new OutgoingMessage(message, logMessageOverride));
+        }
+
+        private bool CanSendMessage()
+        {
+            if (DateTime.Now - RateLimitWindowStart > RateLimitWindowSize)
             {
-                var bytes = Encoding.UTF8.GetBytes($"{message}\r\n");
-                int sent = 0;
-                while (sent != bytes.Length)
-                {
-                    var tmp = Socket.Send(bytes, sent, bytes.Length - sent, SocketFlags.None);
-                    sent += tmp;
-                }
+                return true;
             }
-            catch (Exception e)
+
+            if (MessagesSentInRateLimitWindow < RateLimitMaxMessageCount)
             {
-                Status = Status.Disconnected;
+                return true;
             }
-            RawLogger.WriteOutgoingMessage(logMessageOverride ?? message);
+
+            return false;
         }
 
         private Message ParseMessage(string line)
@@ -294,7 +300,7 @@ namespace zsemlebot.twitch
                     bool noMessagesForAWhile = timeSinceLastMessage > PingFrequency;
                     bool shouldPingAgain = LastMessageReceivedAt > LastPingSentAt || (DateTime.Now - LastPingSentAt > PingFrequency);
 
-                    if (Status == Status.Connected && noMessagesForAWhile && shouldPingAgain)
+                    if (Status == TwitchStatus.Connected && noMessagesForAWhile && shouldPingAgain)
                     {
                         LastPingSentAt = DateTime.Now;
                         SendPing();
@@ -309,7 +315,7 @@ namespace zsemlebot.twitch
             }
             catch (Exception e)
             {
-                Status = Status.Disconnected;
+                Status = TwitchStatus.Disconnected;
             }
         }
 
@@ -323,13 +329,13 @@ namespace zsemlebot.twitch
                 {
                     if (Socket == null)
                     {
-                        Status = Status.Disconnected;
+                        Status = TwitchStatus.Disconnected;
                         return;
                     }
 
                     if (!Socket.Connected)
                     {
-                        Status = Status.Disconnected;
+                        Status = TwitchStatus.Disconnected;
                         return;
                     }
 
@@ -371,8 +377,64 @@ namespace zsemlebot.twitch
             }
             catch (Exception ex)
             {
-                Status = Status.Disconnected;
+                Status = TwitchStatus.Disconnected;
             }
+        }
+
+        private void SendThreadWorker()
+        {
+            try
+            {
+                while (true)
+                {
+                    if (!CanSendMessage())
+                    {
+                        Thread.Sleep(500);
+                        continue;
+                    }
+
+                    OutgoingMessage outgoingMessage;
+                    bool gotNewMessage = false;
+                    lock (padlock)
+                    {
+                        gotNewMessage = OutgoingMessageQueue.TryDequeue(out outgoingMessage);
+                    }
+
+                    if (!gotNewMessage)
+                    {
+                        Thread.Sleep(500);
+                        continue;
+                    }
+
+                    try
+                    {
+                        var bytes = Encoding.UTF8.GetBytes($"{outgoingMessage.Message}\r\n");
+                        int sent = 0;
+                        while (sent != bytes.Length)
+                        {
+                            var tmp = Socket.Send(bytes, sent, bytes.Length - sent, SocketFlags.None);
+                            sent += tmp;
+                        }
+
+                        if (DateTime.Now - RateLimitWindowStart > RateLimitWindowSize)
+                        {
+                            RateLimitWindowStart = DateTime.Now;
+                            MessagesSentInRateLimitWindow = 0;
+                        }
+
+                        MessagesSentInRateLimitWindow++;
+                    }
+                    catch (Exception e)
+                    {
+                        Status = TwitchStatus.Disconnected;
+                    }
+                    RawLogger.WriteOutgoingMessage(outgoingMessage.LogMessageOverride ?? outgoingMessage.Message);
+                }
+            }             
+            catch (Exception ex)
+            {
+                Status = TwitchStatus.Disconnected;
+            }            
         }
 
         private IEnumerable<Tag> ProcessTags(string tags)
@@ -397,44 +459,45 @@ namespace zsemlebot.twitch
             {
                 if (disposing)
                 {
-                    try
-                    {
-                        Socket?.Dispose();
-                    }
-                    catch { }
-                    finally { Socket = null; }
+                    SafeDispose(Socket);
+                    Socket = null;
 
-                    try
-                    {
-                        RawLogger?.Dispose();
-                    }
-                    catch { }
-                    finally { RawLogger = null; }
+                    SafeDispose(RawLogger);
+                    RawLogger = null;
 
-                    try
-                    {
-                        EventLogger?.Dispose();
-                    }
-                    catch { }
-                    finally { EventLogger = null; }
+                    SafeDispose(EventLogger);
+                    EventLogger = null;
 
-                    try
-                    {
-                        ReadThread?.Abort();
-                    }
-                    catch { }
-                    finally { ReadThread = null; }
+                    SafeAbort(SendThread); 
+                    SendThread = null;
 
-                    try
-                    {
-                        PingThread?.Abort();
-                    }
-                    catch { }
-                    finally { PingThread = null; }
+                    SafeAbort(PingThread); 
+                    PingThread = null;
+
+                    SafeAbort(ReadThread); 
+                    ReadThread = null;
                 }
 
                 disposedValue = true;
             }
+        }
+
+        private void SafeDispose(IDisposable disposable)
+        {
+            try
+            {
+                disposable?.Dispose();
+            }
+            catch { }
+        }
+
+        private void SafeAbort(Thread thread)
+        {
+            try
+            {
+                thread?.Abort();
+            }
+            catch { }            
         }
 
         void IDisposable.Dispose()

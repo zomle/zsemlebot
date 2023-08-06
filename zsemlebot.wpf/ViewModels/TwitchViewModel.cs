@@ -81,7 +81,7 @@ namespace zsemlebot.wpf.ViewModels
                 {
                     TwitchService.SendCommand(RawCommandText);
                 },
-                () => Status == nameof(twitch.Status.Connected));
+                () => Status == nameof(twitch.TwitchStatus.Connected));
 
             ClearRawCommand = new CommandHandler(
                () =>

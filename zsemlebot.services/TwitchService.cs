@@ -67,13 +67,13 @@ namespace zsemlebot.services
         {
             while (true)
             {
-                if (Client.Status == Status.Initialized)
+                if (Client.Status == TwitchStatus.Initialized)
                 {
                     Debug.WriteLine("HandleMessagesWorker - Initialized");
                     Thread.Sleep(750);
                     continue;
                 }
-                else if (Client.Status == Status.Disconnected)
+                else if (Client.Status == TwitchStatus.Disconnected)
                 {
                     Debug.WriteLine("HandleMessagesWorker - Disconnected");
                     if (!Reconnect())
@@ -87,7 +87,7 @@ namespace zsemlebot.services
                     }
                     continue;
                 }
-                else if (Client.Status == Status.Connecting)
+                else if (Client.Status == TwitchStatus.Connecting)
                 {
                     Debug.WriteLine("HandleMessagesWorker - Connecting");
                     Thread.Sleep(1000);
