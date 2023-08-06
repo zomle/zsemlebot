@@ -11,9 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.networklib", "zse
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.services", "zsemlebot.services\zsemlebot.services.csproj", "{BE2ED100-567A-4476-A33C-B6E3F50A5E16}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zsemlebot.core", "zsemlebot.core\zsemlebot.core.csproj", "{49B55C40-0321-4D4C-8481-E6AF54877AAD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.core", "zsemlebot.core\zsemlebot.core.csproj", "{49B55C40-0321-4D4C-8481-E6AF54877AAD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zsemlebot.repository", "zsemlebot.repository\zsemlebot.repository.csproj", "{A411FBB2-2E48-4D1D-8B21-7A7778D3CE9A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.repository", "zsemlebot.repository\zsemlebot.repository.csproj", "{A411FBB2-2E48-4D1D-8B21-7A7778D3CE9A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zsemlebot.hota", "zsemlebot.hota\zsemlebot.hota.csproj", "{2BF21090-4325-4904-82ED-2EE62906E387}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{A411FBB2-2E48-4D1D-8B21-7A7778D3CE9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A411FBB2-2E48-4D1D-8B21-7A7778D3CE9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A411FBB2-2E48-4D1D-8B21-7A7778D3CE9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BF21090-4325-4904-82ED-2EE62906E387}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BF21090-4325-4904-82ED-2EE62906E387}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BF21090-4325-4904-82ED-2EE62906E387}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BF21090-4325-4904-82ED-2EE62906E387}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
