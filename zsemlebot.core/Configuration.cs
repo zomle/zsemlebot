@@ -6,8 +6,10 @@ namespace zsemlebot.core
 {
     public sealed class Configuration
     {
-        public TwitchConfiguration Twitch { get; set; }
         public GlobalConfiguration Global { get; set; }
+        public TwitchConfiguration Twitch { get; set; }
+        public HotaConfiguration Hota { get; set; }
+
 
         private static readonly Configuration instance;
 
@@ -31,13 +33,14 @@ namespace zsemlebot.core
             var content = File.ReadAllText(filePath);
             var tmpConfig = JsonConvert.DeserializeObject<Configuration>(content);
 
-            if (tmpConfig == null) 
+            if (tmpConfig == null)
             {
                 throw new InvalidOperationException($"Failed to deserialize config file.");
             }
 
-            Instance.Twitch = tmpConfig.Twitch;
             Instance.Global = tmpConfig.Global;
+            Instance.Twitch = tmpConfig.Twitch;
+            Instance.Hota = tmpConfig.Hota;
 
             CreateDirectory(Instance.Global.LogDirectory);
             CreateDirectory(Instance.Global.DbDirectory);

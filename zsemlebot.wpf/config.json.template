@@ -7,5 +7,12 @@
 	twitch: {
 		user: "",
 		oauthtoken: ""
+	},
+	hota: {
+		serveraddress: "",
+		serverport: 0,
+		user: "",
+		password: "",
+		clientversion: ""
 	}
 }
