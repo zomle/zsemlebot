@@ -54,48 +54,48 @@ namespace zsemlebot.repository
             return QueryFirst<int>("SELECT last_insert_rowid()");
         }
 
-        protected static void ExecuteNonQuery(string sql, object param = null)
+        protected static void ExecuteNonQuery(string sql, object? param = null)
         {
             using var connection = GetConnection();
 
             connection.Execute(sql, param);
         }
 
-        protected static IReadOnlyList<T> Query<T>(string sql, object param = null)
+        protected static IReadOnlyList<T> Query<T>(string sql, object? param = null)
         {
             using var connection = GetConnection();
 
             return connection.Query<T>(sql, param).ToList();
         }
 
-        protected static IReadOnlyList<TReturn> Query<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object param = null)
+        protected static IReadOnlyList<TReturn> Query<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null)
         {
             using var connection = GetConnection();
             return connection.Query(sql, map, splitOn: splitOn, param: param).ToList();
         }
 
-        protected static T QueryFirst<T>(string sql, object param = null)
+        protected static T QueryFirst<T>(string sql, object? param = null)
         {
             using var connection = GetConnection();
 
             return connection.QueryFirst<T>(sql, param);
         }
 
-        protected static T QueryFirstOrDefault<T>(string sql, object param = null)
+        protected static T QueryFirstOrDefault<T>(string sql, object? param = null)
         {
             using var connection = GetConnection();
 
             return connection.QueryFirstOrDefault<T>(sql, param);
         }
 
-        protected static TReturn QueryFirstOrDefault<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object param = null)
+        protected static TReturn? QueryFirstOrDefault<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null)
         {
             using var connection = GetConnection();
 
             return connection.Query(sql, map, splitOn: splitOn, param: param).FirstOrDefault();
         }
 
-        protected static bool QueryHasResult(string sql, object param = null)
+        protected static bool QueryHasResult(string sql, object? param = null)
         {
             using var connection = GetConnection();
 
@@ -104,7 +104,7 @@ namespace zsemlebot.repository
             return result != null;
         }
 
-        protected static int Execute(string sql, object param = null)
+        protected static int Execute(string sql, object? param = null)
         {
             using var connection = GetConnection();
             var result = connection.Execute(sql, param);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.services;
 
@@ -8,8 +9,8 @@ namespace zsemlebot.wpf.ViewModels
 {
     public class TwitchViewModel : ViewModelBase
     {
-        private string status;
-        public string Status
+        private TwitchStatus status;
+        public TwitchStatus Status
         {
             get { return status; }
             set
@@ -63,6 +64,10 @@ namespace zsemlebot.wpf.ViewModels
         {
             Messages = new ObservableCollection<ChatMessage>();
 
+            rawCommandText = string.Empty;
+            lastMessageReceivedAt = "-";
+
+
             TwitchService = twitchService;
 
             TwitchService.MessageReceived += TwitchService_MessageReceived;
@@ -70,27 +75,22 @@ namespace zsemlebot.wpf.ViewModels
             TwitchService.PrivmsgReceived += TwitchService_PrivmsgReceived;
 
             ConnectCommand = new CommandHandler(
-                () =>
-                {
-                    TwitchService.ConnectToTwitch();
-                },
-                () => true);
+                () => TwitchService.Connect(),
+                () => Status == TwitchStatus.Initialized);
+
+            ReconnectCommand = new CommandHandler(
+                () => TwitchService.Reconnect(),
+                () => Status != TwitchStatus.Initialized);
 
             SendRawCommand = new CommandHandler(
-                () =>
-                {
-                    TwitchService.SendCommand(RawCommandText);
-                },
-                () => Status == nameof(twitch.TwitchStatus.Connected));
+                () => TwitchService.SendCommand(RawCommandText),
+                () => Status == TwitchStatus.Authenticated);
 
             ClearRawCommand = new CommandHandler(
-               () =>
-               {
-                   RawCommandText = string.Empty;
-               });
+               () => RawCommandText = string.Empty);
         }
 
-        private void TwitchService_StatusChanged(object? sender, StatusChangedArgs e)
+        private void TwitchService_StatusChanged(object? sender, TwitchStatusChangedArgs e)
         {
             Status = e.NewStatus;
         }
@@ -102,13 +102,7 @@ namespace zsemlebot.wpf.ViewModels
 
         private void TwitchService_PrivmsgReceived(object? sender, PrivMsgReceivedArgs e)
         {
-            var newMessage = new ChatMessage
-            {
-                Timestamp = e.Timestamp,
-                Channel = e.Channel,
-                Sender = e.Sender,
-                Message = e.Message
-            };
+            var newMessage = new ChatMessage(e.Timestamp, e.Channel, e.Sender, e.Message);
 
             InvokeOnUI(() => { Messages.Add(newMessage); });
 

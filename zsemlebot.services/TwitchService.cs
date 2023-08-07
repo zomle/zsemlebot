@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.repository;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
-    public class TwitchService 
+    public class TwitchService
     {
+        #region Events
         private EventHandler<MessageReceivedArgs>? messageReceived;
         public event EventHandler<MessageReceivedArgs> MessageReceived
         {
@@ -16,8 +18,8 @@ namespace zsemlebot.services
             remove { messageReceived -= value; }
         }
 
-        private EventHandler<StatusChangedArgs>? statusChanged;
-        public event EventHandler<StatusChangedArgs> StatusChanged
+        private EventHandler<TwitchStatusChangedArgs>? statusChanged;
+        public event EventHandler<TwitchStatusChangedArgs> StatusChanged
         {
             add { statusChanged += value; }
             remove { statusChanged -= value; }
@@ -29,8 +31,10 @@ namespace zsemlebot.services
             add { privmsgReceived += value; }
             remove { privmsgReceived -= value; }
         }
+        #endregion
 
-        private IrcClient Client { get; set; }
+        private IrcClient? Client { get; set; }
+        private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
 
         private TwitchRepository TwitchRepository { get; set; }
@@ -42,34 +46,41 @@ namespace zsemlebot.services
             ReconnectCount = 0;
 
             TwitchRepository = new TwitchRepository();
+
+            HandleMessagesThread = new Thread(HandleMessagesWorker);
+            HandleMessagesThread.Start();
         }
 
-        public void ConnectToTwitch()
+        public bool Connect()
         {
-            if (Client == null)
+            if (Client != null)
             {
-                Client = new IrcClient();
-                Client.StatusChanged += Client_StatusChanged;
-                Client.MessageReceived += Client_MessageReceived;
-
+                return true;
             }
-            Client.Connect();
-            new Thread(HandleMessagesWorker).Start();
+
+            Client = new IrcClient();
+            Client.StatusChanged += Client_StatusChanged;
+            Client.MessageReceived += Client_MessageReceived;
+
+            var connected = Client.Connect();
+            if (!connected)
+            {
+                Client.Dispose();
+                Client = null;
+
+                statusChanged?.Invoke(this, new TwitchStatusChangedArgs(TwitchStatus.Initialized));
+                return false;
+            }
+            return true;
         }
 
-        public void JoinAndTalk()
-        {
-            Client.JoinChannel("#zomle");
-            Client.SendPrivMsg("#zomle", "peepoGlad");
-        }
 
         public void HandleMessagesWorker()
         {
             while (true)
             {
-                if (Client.Status == TwitchStatus.Initialized)
+                if (Client == null || Client.Status == TwitchStatus.Initialized)
                 {
-                    Debug.WriteLine("HandleMessagesWorker - Initialized");
                     Thread.Sleep(750);
                     continue;
                 }
@@ -94,7 +105,8 @@ namespace zsemlebot.services
                     continue;
                 }
 
-                if (!Client.HasNewMessage()) {
+                if (!Client.HasNewMessage())
+                {
                     Thread.Sleep(100);
                     continue;
                 }
@@ -104,9 +116,12 @@ namespace zsemlebot.services
             }
         }
 
-        private bool Reconnect()
+        public bool Reconnect()
         {
-            //todo tear down previous connection if there is one active.
+            if (Client == null)
+            {
+                return Connect();
+            }
 
             var tmpClient = new IrcClient();
             tmpClient.StatusChanged += Client_StatusChanged;
@@ -117,6 +132,8 @@ namespace zsemlebot.services
             {
                 Client.StatusChanged -= Client_StatusChanged;
                 Client.MessageReceived -= Client_MessageReceived;
+                Client.Dispose();
+
                 Client = tmpClient;
                 return true;
             }
@@ -132,8 +149,13 @@ namespace zsemlebot.services
             return TimeSpan.FromSeconds(WaitTimesBetweenReconnect[index]);
         }
 
-        private void HandleMessage(Message message)
+        private void HandleMessage(Message? message)
         {
+            if (message == null)
+            {
+                return;
+            }
+
             switch (message.Command)
             {
                 case "PRIVMSG":
@@ -147,16 +169,16 @@ namespace zsemlebot.services
             var displayName = rawMessage.SourceUserName;
             var userId = rawMessage.SourceUserId;
 
-            if (displayName != null && userId != 0)
+            if (displayName != null && userId != null)
             {
-                TwitchRepository.UpdateTwitchUserName(userId, displayName); 
+                TwitchRepository.UpdateTwitchUserName(userId.Value, displayName);
             }
 
             var tokens = rawMessage.Params.Split(' ', 2);
             var channel = tokens[0];
             var message = tokens[1][1..];
 
-            privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, displayName, message));
+            privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, displayName ?? "-", message));
         }
 
         private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
@@ -164,7 +186,7 @@ namespace zsemlebot.services
             messageReceived?.Invoke(sender, e);
         }
 
-        private void Client_StatusChanged(object? sender, StatusChangedArgs e)
+        private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
         {
             statusChanged?.Invoke(sender, e);
         }

@@ -1,18 +1,19 @@
 ﻿using System;
-using System.Reflection;
-using zsemlebot.core;
+using zsemlebot.core.Log;
 
 namespace zsemlebot.twitch
 {
     public class TwitchEventLogger : Logger
     {
-        public TwitchEventLogger()
-            :this(DateTime.Now)
-        {
-        }
+        public static readonly TwitchEventLogger Null = new TwitchEventLogger();
 
         public TwitchEventLogger(DateTime timestamp)
              : base($"twitch_events_{timestamp:yyyyMMdd_HHmmss}.txt")
+        {
+        }
+
+        private TwitchEventLogger()
+            : base()
         {
         }
 
@@ -28,7 +29,7 @@ namespace zsemlebot.twitch
 
         public void LogPrivMsg(Message message)
         {
-            var sender = message.Source.Split('!')[0];
+            var sender = message.Source == null ? "(null)" : message.Source.Split('!')[0];
 
             var paramTokens = message.Params.Split(' ', 2);
             var channel = paramTokens[0];

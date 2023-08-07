@@ -32,7 +32,7 @@ namespace zsemlebot.wpf.ViewModels
         /// <summary>
         /// Wires CanExecuteChanged event 
         /// </summary>
-        public event EventHandler CanExecuteChanged
+        public event EventHandler? CanExecuteChanged
         {
             add { CommandManager.RequerySuggested += value; }
             remove { CommandManager.RequerySuggested -= value; }
@@ -43,12 +43,12 @@ namespace zsemlebot.wpf.ViewModels
         /// </summary>
         /// <param name="parameter"></param>
         /// <returns></returns>
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             return canExecute.Invoke();
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             action();
         }

@@ -17,13 +17,15 @@ namespace zsemlebot.core
         public string DbBackupDirectory { get; set; }
         public string FullDbBackupDirectory { get { return Path.Combine(RootDirectory, DbBackupDirectory); } }
 
+        public string RootDirectory { get; }
 
-        public string RootDirectory
+        public GlobalConfiguration()
         {
-            get
-            {
-                return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            }
+            RootDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty;
+
+            LogDirectory = string.Empty;
+            DbDirectory = string.Empty;
+            DbBackupDirectory = string.Empty;
         }
     }
 }

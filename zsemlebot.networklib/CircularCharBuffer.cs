@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace zsemlebot.networklib
 {
@@ -18,7 +14,7 @@ namespace zsemlebot.networklib
             PushData(data.ToCharArray());
         }
 
-        public bool TryReadLine(out string result)
+        public bool TryReadLine(out string? result)
         {
             const string nl = "\r\n";
 

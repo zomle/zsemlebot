@@ -17,6 +17,9 @@ namespace zsemlebot.core
 
         private Configuration()
         {
+            Global = new GlobalConfiguration();
+            Twitch = new TwitchConfiguration();
+            Hota = new HotaConfiguration();
         }
 
         static Configuration()

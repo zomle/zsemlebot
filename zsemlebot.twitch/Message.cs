@@ -1,58 +1,58 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace zsemlebot.twitch
 {
     public class Message
     {
-        public IReadOnlyList<Tag> Tags { get; }
-        public string Source { get; set; }
-        public string Command { get; set; }
-        public string Params { get; set; }
+        public IReadOnlyDictionary<string, Tag> Tags { get; }
+        public string? Source { get; }
+        public string Command { get; }
+        public string Params { get; }
 
-        public string SourceUserName
+        public string? SourceUserName { get; }
+        public int? SourceUserId { get; }
+
+        public Message(string? source, string command, string parameters, IReadOnlyDictionary<string, Tag> tags)
         {
-            get
-            {
-                if (Source == null)
-                {
-                    return null;
-                }
+            Source = source;
+            Command = command;
+            Params = parameters;
+            Tags = tags;
 
-                var tokens = Source.Split('!');
-                if (tokens.Length == 0)
-                {
-                    return Source;
-                }
-
-                return tokens[0];
-            }
+            SourceUserName = GetUserName(source);
+            SourceUserId = GetUserId(tags);
         }
 
-        public int SourceUserId
+        private static string? GetUserName(string? source)
         {
-            get
+            if (source == null)
             {
-                var userIdTag = Tags.FirstOrDefault(t => t.Key == "user-id");
-                if (userIdTag == null)
-                {
-                    return 0;
-                }
-
-                if (!int.TryParse(userIdTag.Value, out var result))
-                {
-                    return 0;
-                }
-
-                return result;
+                return null;
             }
+
+            var tokens = source.Split('!');
+            if (tokens.Length == 0)
+            {
+                return source;
+            }
+
+            return tokens[0];
         }
 
-
-        public Message(IEnumerable<Tag> tags)
+        private static int? GetUserId(IReadOnlyDictionary<string, Tag> tags)
         {
-            Tags = tags == null ? Array.Empty<Tag>() : tags.ToList();
+            if (!tags.TryGetValue("user-id", out var tag))
+            {
+                return null;
+            }
+
+            if (!int.TryParse(tag.Value, out var result))
+            {
+                return null;
+            }
+
+            return result;
         }
     }
 }
