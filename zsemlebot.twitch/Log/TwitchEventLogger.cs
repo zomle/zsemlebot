@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Text;
 using zsemlebot.core.Log;
 
 namespace zsemlebot.twitch.Log
 {
-    public class TwitchEventLogger : Logger
+    public class TwitchEventLogger : TextLogger
     {
         public static readonly TwitchEventLogger Null = new TwitchEventLogger();
 
         public TwitchEventLogger(DateTime timestamp)
-             : base($"twitch_events_{timestamp:yyyyMMdd_HHmmss}.txt")
+             : base($"twitch_events_{timestamp:yyyyMMdd_HHmmss}.txt", Encoding.UTF8)
         {
         }
 

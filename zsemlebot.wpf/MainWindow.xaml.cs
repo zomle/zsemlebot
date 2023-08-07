@@ -11,15 +11,24 @@ namespace zsemlebot.wpf
     /// </summary>
     public partial class MainWindow : Window
     {
+        private TwitchService TwitchService { get; }
+        private HotaService HotaService { get; }
         public MainWindow()
         {
             InitializeComponent();
 
             Config.Instance.LoadConfig("config.json");
 
-            var twitchService = new TwitchService();
-            var hotaService = new HotaService();
-            DataContext = new MainViewModel(twitchService, hotaService);
+            TwitchService = new TwitchService();
+            HotaService = new HotaService();
+
+            DataContext = new MainViewModel(TwitchService, HotaService);
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            TwitchService.Dispose();
+            HotaService.Dispose();
         }
     }
 }

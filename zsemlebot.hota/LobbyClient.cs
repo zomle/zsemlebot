@@ -330,9 +330,23 @@ namespace zsemlebot.hota
             {
                 if (disposing)
                 {
+                    SafeAbort(PingThread);
+                    PingThread = null;
+
+                    SafeAbort(ReadThread);
+                    ReadThread = null;
+
                     SafeDispose(Socket);
                     Socket = null;
 
+                    SafeDispose(RawLogger);
+                    RawLogger = HotaRawLogger.Null;
+
+                    SafeDispose(PackageLogger);
+                    PackageLogger = HotaPackageLogger.Null;
+
+                    SafeDispose(EventLogger);
+                    EventLogger = HotaEventLogger.Null;
                 }
 
                 disposedValue = true;

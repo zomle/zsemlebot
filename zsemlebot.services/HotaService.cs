@@ -7,7 +7,7 @@ using zsemlebot.hota;
 
 namespace zsemlebot.services
 {
-    public class HotaService
+    public class HotaService : IDisposable
     {
         #region Events
         private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -18,6 +18,8 @@ namespace zsemlebot.services
         }
 
         private EventHandler<HotaStatusChangedArgs>? statusChanged;
+        private bool disposedValue;
+
         public event EventHandler<HotaStatusChangedArgs> StatusChanged
         {
             add { statusChanged += value; }
@@ -65,35 +67,41 @@ namespace zsemlebot.services
 
         public void HandleMessagesWorker()
         {
-            while (true)
+            try
             {
-                if (Client == null || Client.Status == HotaStatus.Initialized)
+                while (true)
                 {
-                    Thread.Sleep(750);
-                    continue;
-                }
-                else if (Client.Status == HotaStatus.Disconnected)
-                {
-                    Debug.WriteLine("Hota - HandleMessagesWorker - Disconnected");
-                    if (!Reconnect())
+                    if (Client == null || Client.Status == HotaStatus.Initialized)
                     {
-                        ReconnectCount++;
-                        Thread.Sleep(GetWaitBetweenReconnects());
+                        Thread.Sleep(750);
+                        continue;
                     }
-                    else
+                    else if (Client.Status == HotaStatus.Disconnected)
                     {
-                        ReconnectCount = 0;
+                        Debug.WriteLine("Hota - HandleMessagesWorker - Disconnected");
+                        if (!Reconnect())
+                        {
+                            ReconnectCount++;
+                            Thread.Sleep(GetWaitBetweenReconnects());
+                        }
+                        else
+                        {
+                            ReconnectCount = 0;
+                        }
+                        continue;
                     }
-                    continue;
-                }
-                else if (Client.Status == HotaStatus.Connecting)
-                {
-                    Debug.WriteLine("Hota - HandleMessagesWorker - Connecting");
-                    Thread.Sleep(1000);
-                    continue;
-                }
+                    else if (Client.Status == HotaStatus.Connecting)
+                    {
+                        Debug.WriteLine("Hota - HandleMessagesWorker - Connecting");
+                        Thread.Sleep(1000);
+                        continue;
+                    }
 
-                Thread.Sleep(500);
+                    Thread.Sleep(500);
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
             }
         }
 
@@ -138,6 +146,41 @@ namespace zsemlebot.services
         private void Client_StatusChanged(object? sender, HotaStatusChangedArgs e)
         {
             statusChanged?.Invoke(sender, e);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    try
+                    {
+                        HandleMessagesThread?.Interrupt();
+                    }
+                    catch { }
+
+                    try
+                    {
+                        if (Client != null)
+                        {
+                            Client.StatusChanged -= Client_StatusChanged;
+                            Client.MessageReceived -= Client_MessageReceived;
+                            Client.Dispose();
+                        }
+                    }
+                    catch { }
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

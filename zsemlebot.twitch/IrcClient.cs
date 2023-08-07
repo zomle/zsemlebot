@@ -472,15 +472,6 @@ namespace zsemlebot.twitch
             {
                 if (disposing)
                 {
-                    SafeDispose(Socket);
-                    Socket = null;
-
-                    SafeDispose(RawLogger);
-                    RawLogger = TwitchRawLogger.Null;
-
-                    SafeDispose(EventLogger);
-                    EventLogger = TwitchEventLogger.Null;
-
                     SafeAbort(SendThread);
                     SendThread = null;
 
@@ -489,6 +480,15 @@ namespace zsemlebot.twitch
 
                     SafeAbort(ReadThread);
                     ReadThread = null;
+
+                    SafeDispose(Socket);
+                    Socket = null;
+
+                    SafeDispose(RawLogger);
+                    RawLogger = TwitchRawLogger.Null;
+
+                    SafeDispose(EventLogger);
+                    EventLogger = TwitchEventLogger.Null;
                 }
 
                 disposedValue = true;

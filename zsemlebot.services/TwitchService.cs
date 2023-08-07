@@ -8,7 +8,7 @@ using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
-    public class TwitchService
+    public class TwitchService : IDisposable
     {
         #region Events
         private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -77,42 +77,48 @@ namespace zsemlebot.services
 
         public void HandleMessagesWorker()
         {
-            while (true)
+            try
             {
-                if (Client == null || Client.Status == TwitchStatus.Initialized)
+                while (true)
                 {
-                    Thread.Sleep(750);
-                    continue;
-                }
-                else if (Client.Status == TwitchStatus.Disconnected)
-                {
-                    Debug.WriteLine("HandleMessagesWorker - Disconnected");
-                    if (!Reconnect())
+                    if (Client == null || Client.Status == TwitchStatus.Initialized)
                     {
-                        ReconnectCount++;
-                        Thread.Sleep(GetWaitBetweenReconnects());
+                        Thread.Sleep(750);
+                        continue;
                     }
-                    else
+                    else if (Client.Status == TwitchStatus.Disconnected)
                     {
-                        ReconnectCount = 0;
+                        Debug.WriteLine("HandleMessagesWorker - Disconnected");
+                        if (!Reconnect())
+                        {
+                            ReconnectCount++;
+                            Thread.Sleep(GetWaitBetweenReconnects());
+                        }
+                        else
+                        {
+                            ReconnectCount = 0;
+                        }
+                        continue;
                     }
-                    continue;
-                }
-                else if (Client.Status == TwitchStatus.Connecting)
-                {
-                    Debug.WriteLine("HandleMessagesWorker - Connecting");
-                    Thread.Sleep(1000);
-                    continue;
-                }
+                    else if (Client.Status == TwitchStatus.Connecting)
+                    {
+                        Debug.WriteLine("HandleMessagesWorker - Connecting");
+                        Thread.Sleep(1000);
+                        continue;
+                    }
 
-                if (!Client.HasNewMessage())
-                {
-                    Thread.Sleep(100);
-                    continue;
-                }
+                    if (!Client.HasNewMessage())
+                    {
+                        Thread.Sleep(100);
+                        continue;
+                    }
 
-                var message = Client.GetNextMessage();
-                HandleMessage(message);
+                    var message = Client.GetNextMessage();
+                    HandleMessage(message);
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
             }
         }
 
@@ -195,5 +201,43 @@ namespace zsemlebot.services
         {
             Client?.SendRawCommand(rawCommandText);
         }
+
+        #region IDisposable implementation
+        private bool disposedValue;
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    try
+                    {
+                        HandleMessagesThread?.Interrupt();
+                    }
+                    catch { }
+
+                    try
+                    {
+                        if (Client != null)
+                        {
+                            Client.StatusChanged -= Client_StatusChanged;
+                            Client.MessageReceived -= Client_MessageReceived;
+                            Client.Dispose();
+                        }
+                    }
+                    catch { }
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }
