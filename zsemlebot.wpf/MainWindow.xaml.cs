@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using zsemlebot.core;
 using zsemlebot.services;
@@ -19,10 +15,11 @@ namespace zsemlebot.wpf
         {
             InitializeComponent();
 
-            Configuration.Instance.LoadConfig("config.json");
+            Config.Instance.LoadConfig("config.json");
 
             var twitchService = new TwitchService();
-            DataContext = new MainViewModel(twitchService);
+            var hotaService = new HotaService();
+            DataContext = new MainViewModel(twitchService, hotaService);
         }
     }
 }

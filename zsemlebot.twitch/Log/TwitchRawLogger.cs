@@ -1,7 +1,7 @@
 ﻿using System;
 using zsemlebot.core.Log;
 
-namespace zsemlebot.twitch
+namespace zsemlebot.twitch.Log
 {
     public class TwitchRawLogger : Logger
     {
@@ -16,7 +16,6 @@ namespace zsemlebot.twitch
             : base()
         {
         }
-
 
         public void WriteIncomingMessage(string line)
         {

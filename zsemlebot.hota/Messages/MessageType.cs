@@ -7,5 +7,6 @@
         UserInfo = 0x33,
         RequestUserRep = 0x68,
         RequestUserElo = 0x74,
+        MaybePing = 0x95,
     }
 }

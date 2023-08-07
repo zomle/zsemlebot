@@ -124,10 +124,10 @@ namespace zsemlebot.repository
         {
             try
             {
-                var dbFilename = Configuration.Instance.Global.FullDatabaseFilePath;
+                var dbFilename = Config.Instance.Global.FullDatabaseFilePath;
 
-                var dbBackupName = $"{Configuration.Instance.Global.DatabaseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}";
-                var dbBackupFilename = Path.Combine(Configuration.Instance.Global.FullDbBackupDirectory, dbBackupName);
+                var dbBackupName = $"{Config.Instance.Global.DatabaseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}";
+                var dbBackupFilename = Path.Combine(Config.Instance.Global.FullDbBackupDirectory, dbBackupName);
 
                 if (File.Exists(dbFilename))
                 {
@@ -142,8 +142,8 @@ namespace zsemlebot.repository
 
         private static string GetConnectionString()
         {
-            var dbDirectory = Configuration.Instance.Global.FullDbDirectory;
-            var dbFilename = Configuration.Instance.Global.FullDatabaseFilePath;
+            var dbDirectory = Config.Instance.Global.FullDbDirectory;
+            var dbFilename = Config.Instance.Global.FullDatabaseFilePath;
 
             var builder = new SQLiteConnectionStringBuilder();
             builder.DataSource = dbFilename;

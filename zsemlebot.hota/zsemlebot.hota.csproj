@@ -5,4 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\zsemlebot.core\zsemlebot.core.csproj" />
+    <ProjectReference Include="..\zsemlebot.networklib\zsemlebot.networklib.csproj" />
+  </ItemGroup>
+
 </Project>

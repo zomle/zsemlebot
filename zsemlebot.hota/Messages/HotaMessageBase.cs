@@ -5,10 +5,16 @@ namespace zsemlebot.hota.Messages
 {
     public abstract class HotaMessageBase
     {
-        public MessageType Type { get; set; }
-        public short Length { get; set; }
-        
-        public virtual byte[] AsByteArray()
+        public MessageType Type { get; }
+        public short Length { get; }
+
+        public HotaMessageBase(MessageType type, short length)
+        {
+            Type = type;
+            Length = length;
+        }
+
+        public virtual DataPackage AsDataPackage()
         {
             throw new NotImplementedException();
         }

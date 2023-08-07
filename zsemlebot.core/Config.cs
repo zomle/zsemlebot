@@ -4,27 +4,26 @@ using System.IO;
 
 namespace zsemlebot.core
 {
-    public sealed class Configuration
+    public sealed class Config
     {
         public GlobalConfiguration Global { get; set; }
         public TwitchConfiguration Twitch { get; set; }
         public HotaConfiguration Hota { get; set; }
 
+        private static readonly Config instance;
 
-        private static readonly Configuration instance;
+        public static Config Instance { get { return instance; } }
 
-        public static Configuration Instance { get { return instance; } }
-
-        private Configuration()
+        private Config()
         {
             Global = new GlobalConfiguration();
             Twitch = new TwitchConfiguration();
             Hota = new HotaConfiguration();
         }
 
-        static Configuration()
+        static Config()
         {
-            instance = new Configuration();
+            instance = new Config();
         }
 
         public void LoadConfig(string filePath)
@@ -34,7 +33,7 @@ namespace zsemlebot.core
                 throw new InvalidOperationException($"Config file doesn't exist: '{filePath}'");
             }
             var content = File.ReadAllText(filePath);
-            var tmpConfig = JsonConvert.DeserializeObject<Configuration>(content);
+            var tmpConfig = JsonConvert.DeserializeObject<Config>(content);
 
             if (tmpConfig == null)
             {

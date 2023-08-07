@@ -15,7 +15,7 @@
                 <views:TwitchView DataContext="{Binding TwitchViewModel}" />
             </TabItem>
             <TabItem Header="Hota">
-                
+                <views:HotaView DataContext="{Binding HotaViewModel}" />
             </TabItem>
         </TabControl>
     </Grid>

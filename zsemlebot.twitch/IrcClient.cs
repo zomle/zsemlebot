@@ -7,6 +7,7 @@ using zsemlebot.networklib;
 using zsemlebot.core;
 using zsemlebot.core.EventArgs;
 using zsemlebot.core.Enums;
+using zsemlebot.twitch.Log;
 
 namespace zsemlebot.twitch
 {
@@ -110,8 +111,8 @@ namespace zsemlebot.twitch
                 Status = TwitchStatus.Connected;
 
                 SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands");
-                SendMessage($"PASS {Configuration.Instance.Twitch.OAuthToken}", "PASS ***");
-                SendMessage($"NICK {Configuration.Instance.Twitch.User}");
+                SendMessage($"PASS {Config.Instance.Twitch.OAuthToken}", "PASS ***");
+                SendMessage($"NICK {Config.Instance.Twitch.User}");
 
                 lastMessageReceivedAt = DateTime.Now;
 
@@ -174,7 +175,7 @@ namespace zsemlebot.twitch
 
         private void SendPing()
         {
-            SendMessage($"PING {Configuration.Instance.Twitch.User}");
+            SendMessage($"PING {Config.Instance.Twitch.User}");
             EventLogger.LogPing();
         }
 
@@ -290,7 +291,7 @@ namespace zsemlebot.twitch
                     bool noMessagesForAWhile = timeSinceLastMessage > PingFrequency;
                     bool shouldPingAgain = LastMessageReceivedAt > LastPingSentAt || (DateTime.Now - LastPingSentAt > PingFrequency);
 
-                    if (Status == TwitchStatus.Connected && noMessagesForAWhile && shouldPingAgain)
+                    if (Status == TwitchStatus.Authenticated && noMessagesForAWhile && shouldPingAgain)
                     {
                         LastPingSentAt = DateTime.Now;
                         SendPing();

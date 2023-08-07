@@ -7,13 +7,14 @@
         public uint LobbyClientVersion { get; set; }
 
         public LoginMessage(string user, string password, uint lobbyClientVersion)
+            : base(MessageType.Login, 0xfd)
         {
             User = user;
             Password = password;
             LobbyClientVersion = lobbyClientVersion;
         }
 
-        //The implementation of `byte[] AsByteArray()` is kept in a separate file, that is not commited to git.
+        //The implementation of `DataPackage AsDataPackage()` is kept in a separate file, that is not commited to git.
         //The reason for this is to not to make it easy for potential bad actors to abuse the hota lobby.
     }
 }

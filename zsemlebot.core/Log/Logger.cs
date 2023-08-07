@@ -3,7 +3,7 @@ using System.IO;
 
 namespace zsemlebot.core.Log
 {
-    public abstract class Logger : ILogger, IDisposable
+    public abstract class Logger : IDisposable
     {
         public string FileName { get; }
         public string FilePath { get; }
@@ -12,7 +12,7 @@ namespace zsemlebot.core.Log
         public Logger(string fileName)
         {
             FileName = fileName;
-            FilePath = Path.Combine(Configuration.Instance.Global.FullLogDirectory, fileName);
+            FilePath = Path.Combine(Config.Instance.Global.FullLogDirectory, fileName);
 
             Writer = new StreamWriter(new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.Read));
         }
@@ -24,6 +24,12 @@ namespace zsemlebot.core.Log
             Writer = StreamWriter.Null;
         }
 
+        public void Write(byte[] data, int length)
+        {
+            Writer.BaseStream.Write(data, 0, length);
+            Writer.Flush();
+        }
+
         public void Write(string text)
         {
             Writer.Write(text);
@@ -33,6 +39,12 @@ namespace zsemlebot.core.Log
         public void WriteLine(string text)
         {
             Writer.WriteLine(text);
+            Writer.Flush();
+        }
+
+        public void WriteLine()
+        {
+            Writer.WriteLine();
             Writer.Flush();
         }
 
