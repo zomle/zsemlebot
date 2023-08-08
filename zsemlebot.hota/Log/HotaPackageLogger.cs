@@ -19,24 +19,23 @@ namespace zsemlebot.hota.Log
         {
         }
 
-        public void LogPackage(bool isIncoming, DataPackage package)
+        public void LogPackage(bool isIncoming, DataPackage package, bool isHandled)
         {
-            var packageString = CreatePackageString(package);
-
             if (isIncoming)
             {
-                WriteLine($" < {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                WriteLine($" < {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
             }
             else
             {
-                WriteLine($" > {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                WriteLine($" > {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
             }
 
+            var packageString = CreatePackageString(package, isHandled);
             WriteLine(packageString);
             WriteLine();
         }
 
-        private static string CreatePackageString(DataPackage package)
+        private static string CreatePackageString(DataPackage package, bool isHandled)
         {
             if (package.SkipLogging)
             {
@@ -47,11 +46,11 @@ namespace zsemlebot.hota.Log
             }
             else
             {
-                var hexa = new StringBuilder();
-                var ascii = new StringBuilder();
+                var hexa = new StringBuilder(2000);
+                var ascii = new StringBuilder(2000);
 
                 var sb = new StringBuilder();
-                sb.AppendLine($"Type: 0x{package.Type.ToHexString()}; Length: {package.ReadShort(0)} bytes");
+                sb.AppendLine($"Type: 0x{package.Type.ToHexString()}; Length: {package.ReadShort(0)} bytes; {(isHandled ? "handled" : "not handled")}");
                 sb.AppendLine();
 
                 int startIndex = 0;
@@ -59,7 +58,8 @@ namespace zsemlebot.hota.Log
                 {
                     var b = package.Content[i];
                     hexa.AppendFormat("{0:X2} ", b);
-                    ascii.Append(b < 0x20 ? '.' : (char)b);
+                    var c = (char)b;
+                    ascii.Append(char.IsControl(c) ? '.' : c);
 
                     if ((i + 1) % 8 == 0)
                     {

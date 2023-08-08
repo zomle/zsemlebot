@@ -21,7 +21,7 @@ namespace zsemlebot.hota.Log
 
         internal void LogEvent(short type, string summary, string? details = null)
         {
-            WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | Type: {type.ToHexString()} ({summary,-14}); {details ?? string.Empty}");
+            WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} | Type: {type.ToHexString()} ({summary,-14}); {details ?? string.Empty}");
         }
     }
 }

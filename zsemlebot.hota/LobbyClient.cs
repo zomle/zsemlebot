@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using zsemlebot.core;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
+using zsemlebot.hota.Extensions;
 using zsemlebot.hota.Log;
 using zsemlebot.hota.Messages;
 using zsemlebot.networklib;
@@ -179,7 +182,7 @@ namespace zsemlebot.hota
             }
 
             var package = message.AsDataPackage();
-            PackageLogger.LogPackage(false, package);
+            PackageLogger.LogPackage(false, package, true);
 
             int sent = 0;
             var bytes = package.Content;
@@ -237,9 +240,8 @@ namespace zsemlebot.hota
                             continue;
                         }
 
-                        PackageLogger.LogPackage(true, package);
-
-                        ProcessPackage(package);
+                        var isHandled = ProcessPackage(package);
+                        PackageLogger.LogPackage(true, package, isHandled);
                     }
                 }
             }
@@ -267,58 +269,235 @@ namespace zsemlebot.hota
             return true;
         }
 
-        private void ProcessPackage(DataPackage dataPackage)
+        private bool ProcessPackage(DataPackage dataPackage)
         {
             switch (dataPackage.Type)
             {
-                case 0x7F: //donation goal status
-                    EventLogger.LogEvent(dataPackage.Type, "donation goal");
-                    return;
-
-                case 0x80: //donators
-                    EventLogger.LogEvent(dataPackage.Type, "donator");
-                    return;
-
-                case 0x31: //auth reply
+                case Constants.MsgType_AuthReply: //auth reply
                     ProcessAuthenticationReply(dataPackage);
-                    return;
+                    return true;
 
-                case 0x72: //successfully logged in
+                case Constants.MsgType_UserJoinedLobby: //user joined lobby
+                    ProcessUserJoinedLobby(dataPackage);
+                    return true;
+
+                case Constants.MsgType_OwnInfo: //own info
+                    ProcessOwnInfo(dataPackage);
+                    return true;
+
+                case Constants.MsgType_UserStatusChange: //user status change
+                    ProcessUserStatusChange(dataPackage);
+                    return true;
+
+                case Constants.MsgType_GameRoomItem: //game room item
+                    ProcessGameRoomItem(dataPackage);
+                    return true;
+
+                case Constants.MsgType_GameUserChange: //game-user change
+                    ProcessGameUserChange(dataPackage);
+                    return true;
+
+                case Constants.MsgType_GameEnded: //game ended
+                    ProcessGameEnded(dataPackage);
+                    return true;
+
+                case Constants.MsgType_OldChatMessage: //old chat message
+                    EventLogger.LogEvent(dataPackage.Type, "old chat");
+                    return true;
+
+                case Constants.MsgType_NewChatMessage: //incoming chat message
+                    ProcessIncomingMessage(dataPackage);
+                    return true;
+
+                case Constants.MsgType_UserLeftLobby: //user left lobby
+                    EventLogger.LogEvent(dataPackage.Type, "user left");
+                    return true;
+
+                case Constants.MsgType_UserLeftLobby2: //user left lobby
+                    EventLogger.LogEvent(dataPackage.Type, "user left2");
+                    return true;                    
+
+                case Constants.MsgType_SuccessfulLogin: //successfully logged in
                     Status = HotaStatus.Authenticated;
                     EventLogger.LogEvent(dataPackage.Type, "login ok");
-                    return;
+                    return true;
 
-                case 0x47:
-                    //lobby chat message
-                    EventLogger.LogEvent(dataPackage.Type, "lobby chat");
-                    return;
+                case Constants.MsgType_DonationGoal: //donation goal status
+                    EventLogger.LogEvent(dataPackage.Type, "donation goal");
+                    return true;
+
+                case Constants.MsgType_Donators: //donators
+                    EventLogger.LogEvent(dataPackage.Type, "donator");
+                    return true;
+
+                case Constants.MsgType_Unknown1:
+                    EventLogger.LogEvent(dataPackage.Type, "unknown1");
+                    return true;
+
+                case Constants.MsgType_Unknown2: //maybe end of data - refresh ui?
+                    EventLogger.LogEvent(dataPackage.Type, "unknown2");
+                    return true;
+                
+                case Constants.MsgType_GameStatusChange: //maybe game status change
+                    ProcessGameStatusChange(dataPackage);
+                    return true;
+
+                case Constants.MsgType_UnknownUserEvent:
+                    EventLogger.LogEvent(dataPackage.Type, "unkwn usr evnt", $"user id: {dataPackage.ReadInt(4).ToHexString()}");
+                    return true;
 
                 default:
                     EventLogger.LogEvent(dataPackage.Type, "unhandled");
-                    break;
+                    return false;
             }
         }
 
-        private void ProcessAuthenticationReply(DataPackage package)
+        private void ProcessGameEnded(DataPackage dataPackage)
         {
-            var reply = package.ReadInt(4);
+            AssertType(dataPackage, Constants.MsgType_GameEnded);
+            
+            var hostUserId = dataPackage.ReadInt(4);
+            var gameId = dataPackage.ReadInt(8);
+
+            EventLogger.LogEvent(dataPackage.Type, "game ended", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}");
+        }
+
+        private void ProcessGameStatusChange(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_GameStatusChange);
+
+            var hostUserId = dataPackage.ReadInt(4);
+            var gameId = dataPackage.ReadInt(8);
+            var field = dataPackage.ReadInt(0xc);
+
+            EventLogger.LogEvent(dataPackage.Type, "game stus chg", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}; field: {field.ToHexString()}");
+        }
+
+        private void ProcessUserStatusChange(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_UserStatusChange);
+
+            var userId = dataPackage.ReadInt(4);
+            var newStatus = dataPackage.ReadInt(8);
+            EventLogger.LogEvent(dataPackage.Type, "user stus chg", $"user id: {userId.ToHexString()}; new status: {newStatus}");
+        }
+
+        private void ProcessGameUserChange(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_GameUserChange);
+
+            var hostUserId = dataPackage.ReadInt(4);
+            var gameId = dataPackage.ReadInt(8);
+            var otherUserId = dataPackage.ReadInt(0xc);
+            var field1 = dataPackage.ReadByte(0x10);
+            var unkwnid = dataPackage.ReadInt(0x11);
+            var field2 = dataPackage.ReadByte(0x15);
+
+            EventLogger.LogEvent(dataPackage.Type, "game user chg", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}; other user id: {otherUserId.ToHexString()}; field1: {field1.ToHexString()}; unknownid: {unkwnid.ToHexString()}; field2: {field2.ToHexString()}");
+        }
+
+        private void ProcessOwnInfo(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_OwnInfo);
+
+            var userId = dataPackage.ReadInt(8);
+            var userElo = dataPackage.ReadInt(0xC);
+            var userRep = dataPackage.ReadInt(0x10);
+            var userName = dataPackage.ReadString(0x14, 18);
+
+            EventLogger.LogEvent(dataPackage.Type, "own info", $"user id: {userId.ToHexString()}; name: {userName}; elo: {userElo}; rep: {userRep}");
+        }
+
+        private void ProcessGameRoomItem(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_GameRoomItem);
+
+            var hostUserId = dataPackage.ReadInt(4);
+            var gameId = dataPackage.ReadInt(8);
+            var gameDescription = dataPackage.ReadString(0xC, 64);
+            var isPasswordProtected = dataPackage.ReadByte(0x4C) == 1; //???
+            var maxNumberOfPlayers = dataPackage.ReadByte(0x4D);
+            var isRanked = dataPackage.ReadByte(0x4E) == 1;
+            var isLoadGame = dataPackage.ReadByte(0x4F) == 1; //????
+            var currentNumberOfPlayers = dataPackage.ReadByte(0x50);
+
+            var joinedUserIds = new List<int>();
+            for (int i = 0; i < currentNumberOfPlayers; i++)
+            {
+                joinedUserIds.Add(dataPackage.ReadInt(0x51 + i * 4));
+            }
+            var hostUserElo = dataPackage.ReadInt(0x76);
+
+            EventLogger.LogEvent(dataPackage.Type, "game created", $"game id: {gameId.ToHexString()}; host user id: {hostUserId.ToHexString()} ({hostUserElo}); Joined users: {string.Join(", ", joinedUserIds.Select(u => u.ToHexString()))}");
+        }
+
+        private void ProcessUserJoinedLobby(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_UserJoinedLobby);
+
+            var userId = dataPackage.ReadInt(8);
+            var userElo = dataPackage.ReadInt(0xC);
+            var userRep = dataPackage.ReadInt(0x10);
+            var userName = dataPackage.ReadString(0x14, 18);
+
+            EventLogger.LogEvent(dataPackage.Type, "user join lby", $"{userName:-18}({userId.ToHexString()}) elo: {userElo}; rep: {userRep}");
+        }
+
+        private void ProcessIncomingMessage(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_NewChatMessage);
+
+            var sourceUserId = dataPackage.ReadInt(4);
+            var destinationId = dataPackage.ReadInt(8);
+            var destinationType = dataPackage.ReadByte(0xC);
+            var sourceUserName = dataPackage.ReadString(0x22, 17);
+            var message = dataPackage.ReadString(0x33, dataPackage.Content.Length - 0x33);
+
+            string destination = destinationType switch
+            {
+                Constants.ChatMessageDstType_PublicLobby => ((ChatMessageDestination)destinationId).ToString(),
+                Constants.ChatMessageDstType_PrivateMessage => destinationId.ToHexString(),
+                _ => $"unknown:{destinationType}"
+            };
+
+            EventLogger.LogEvent(dataPackage.Type, "incoming chat", $"{sourceUserName}({sourceUserId.ToHexString()}) -> ({destination}): {message}");
+        }
+
+        private void ProcessAuthenticationReply(DataPackage dataPackage)
+        {
+            AssertType(dataPackage, Constants.MsgType_AuthReply);
+
+            var reply = dataPackage.ReadInt(4);
 
             switch (reply)
             {
                 case 1:
-                    EventLogger.LogEvent(package.Type, "login ok");
+                    EventLogger.LogEvent(dataPackage.Type, "login ok");
                     StartPingThread();
                     return;
 
                 case 2:
-                    EventLogger.LogEvent(package.Type, "login not ok", "Already logged in.");
+                    EventLogger.LogEvent(dataPackage.Type, "login not ok", "Already logged in.");
                     Status = HotaStatus.Disconnected;
                     return;
 
                 default:
-                    EventLogger.LogEvent(package.Type, "login not ok", $"Minimum required version: {reply}");
+                    EventLogger.LogEvent(dataPackage.Type, "login not ok", $"Minimum required version: {reply}");
                     Status = HotaStatus.ObsoleteClient;
                     return;
+            }
+        }
+
+        private static void AssertType(DataPackage package, short expectedType, [CallerMemberName]string? callerName = null)
+        {
+            if (package == null)
+            {
+                throw new ArgumentNullException(nameof(package), $"{callerName} was called with null package.");
+            }
+
+            if (package.Type != expectedType)
+            {
+                throw new InvalidOperationException($"{callerName}(): Expected package type: {expectedType}; Actual package type: {package.Type}");
             }
         }
 
