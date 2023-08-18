@@ -78,5 +78,12 @@ namespace zsemlebot.hota.Extensions
                 buffer[index + i] = src[i];
             }
         }
+
+        public static void WriteString(this byte[] buffer, int index, string value)
+        {
+            var bytes = Encoding.ASCII.GetBytes(value);
+            Array.Copy(bytes, 0, buffer, index, bytes.Length);
+            buffer[index + bytes.Length] = 0;
+        }
     }
 }

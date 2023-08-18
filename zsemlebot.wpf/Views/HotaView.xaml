@@ -23,6 +23,8 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Margin="5" Command="{Binding ConnectCommand}">Connect</Button>
             <Button Grid.Column="1" Margin="5" Command="{Binding ReconnectCommand}">Reconnect</Button>
+
+            <Button Grid.Column="4" Margin="5" Command="{Binding TestCommand}">Test</Button>
         </Grid>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal">

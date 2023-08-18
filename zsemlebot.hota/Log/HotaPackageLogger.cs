@@ -35,7 +35,7 @@ namespace zsemlebot.hota.Log
             WriteLine();
         }
 
-        private static string CreatePackageString(DataPackage package, bool isHandled)
+        public static string CreatePackageString(DataPackage package, bool isHandled)
         {
             if (package.SkipLogging)
             {

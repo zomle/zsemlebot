@@ -101,4 +101,4 @@ FakesAssemblies/
 .vs/
 
 /zsemlebot.wpf/config.json
-/zsemlebot.hota/Messages/LoginMessage.Secret.cs
+/zsemlebot.hota/Messages/*.Secret.cs

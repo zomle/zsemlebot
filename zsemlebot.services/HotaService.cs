@@ -40,6 +40,9 @@ namespace zsemlebot.services
             HandleMessagesThread = new Thread(HandleMessagesWorker);
             HandleMessagesThread.Start();
         }
+        public void Test()
+        {
+        }
 
         public bool Connect()
         {

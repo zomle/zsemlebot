@@ -123,6 +123,12 @@ namespace zsemlebot.hota
                 return false;
             }
         }
+        
+        public void SendMessage(uint userId, string message)
+        {
+            SendSocketRaw(new SendChatMessage(userId, message));
+        }
+
         private void StartPingThread()
         {
             PingThread = new Thread(PingThreadWorker);
@@ -460,7 +466,7 @@ namespace zsemlebot.hota
                 _ => $"unknown:{destinationType}"
             };
 
-            EventLogger.LogEvent(dataPackage.Type, "incoming chat", $"{sourceUserName}({sourceUserId.ToHexString()}) -> ({destination}): {message}");
+            EventLogger.LogEvent(dataPackage.Type, "incoming chat", $"{sourceUserName:-18}({sourceUserId.ToHexString()}) -> ({destination}): {message}");
         }
 
         private void ProcessAuthenticationReply(DataPackage dataPackage)
@@ -556,6 +562,8 @@ namespace zsemlebot.hota
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
+
         #endregion
     }
 }

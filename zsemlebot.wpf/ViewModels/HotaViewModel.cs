@@ -53,6 +53,7 @@ namespace zsemlebot.wpf.ViewModels
 
         public ICommand ConnectCommand { get; }
         public ICommand ReconnectCommand { get; }
+        public ICommand TestCommand { get; }
 
         private HotaService HotaService { get; }
 
@@ -73,6 +74,9 @@ namespace zsemlebot.wpf.ViewModels
             ReconnectCommand = new CommandHandler(
                 () => HotaService.Reconnect(),
                 () => Status != HotaStatus.Initialized);
+
+            TestCommand = new CommandHandler(
+                () => HotaService.Test());
         }
 
         private void HotaService_StatusChanged(object? sender, HotaStatusChangedArgs e)
