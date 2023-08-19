@@ -47,6 +47,7 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
@@ -59,8 +60,11 @@
                 <Label Grid.Row="1" Grid.Column="0">Status:</Label>
                 <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.Status}"></TextBlock>
 
-                <Label Grid.Row="2" Grid.Column="0">Last message received at:</Label>
-                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.LastMessageReceivedAt}"></TextBlock>
+                <Label Grid.Row="2" Grid.Column="0">Online users:</Label>
+                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.OnlineUserCount}"></TextBlock>
+                
+                <Label Grid.Row="3" Grid.Column="0">Last message received at:</Label>
+                <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.LastMessageReceivedAt}"></TextBlock>
             </Grid>
         </GroupBox>
     </Grid>

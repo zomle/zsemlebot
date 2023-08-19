@@ -15,7 +15,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.core", "zsemlebot
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.repository", "zsemlebot.repository\zsemlebot.repository.csproj", "{A411FBB2-2E48-4D1D-8B21-7A7778D3CE9A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zsemlebot.hota", "zsemlebot.hota\zsemlebot.hota.csproj", "{2BF21090-4325-4904-82ED-2EE62906E387}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "zsemlebot.hota", "zsemlebot.hota\zsemlebot.hota.csproj", "{2BF21090-4325-4904-82ED-2EE62906E387}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{31C7DEAA-9F9A-454D-A30D-3E9F77E2B915}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

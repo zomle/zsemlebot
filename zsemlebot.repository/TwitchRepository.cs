@@ -6,48 +6,53 @@ namespace zsemlebot.repository
 {
     public class TwitchRepository : RepositoryBase
     {
-        private Dictionary<int, string> TwitchUsersById { get; set; }
-        private Dictionary<string, int> TwitchUsersByName { get; set; }
+        private Dictionary<int, TwitchUserData> TwitchUsersById { get; set; }
+        private Dictionary<string, TwitchUserData> TwitchUsersByName { get; set; }
 
         public TwitchRepository()
         {
-            TwitchUsersById = new Dictionary<int, string>();
-            TwitchUsersByName = new Dictionary<string, int>();
+            TwitchUsersById = new Dictionary<int, TwitchUserData>();
+            TwitchUsersByName = new Dictionary<string, TwitchUserData>();
 
             LoadTwitchUsers();
         }
 
         private void LoadTwitchUsers()
         {
-            var models = Query<TwitchUserData>("SELECT [TwitchUserId], [DisplayName] FROM [TwitchUserData];");
+            var models = Query<TwitchUserData>($"SELECT [TwitchUserId], [DisplayName] FROM [{TwitchUserDataTableName}];");
             foreach (var model in models)
             {
-                TwitchUsersById.Add(model.TwitchUserId, model.DisplayName);
-                TwitchUsersByName.Add(model.DisplayName, model.TwitchUserId);
+                TwitchUsersById.Add(model.TwitchUserId, model);
+                TwitchUsersByName.Add(model.DisplayName, model);
             }
         }
 
         public void UpdateTwitchUserName(int id, string newName)
         {
-            if (TwitchUsersById.TryGetValue(id, out var oldName))
+            if (TwitchUsersById.TryGetValue(id, out var oldUser))
             {
-                if (oldName == newName)
+                if (oldUser.DisplayName == newName)
                 {
                     return;
                 }
 
-                TwitchUsersById[id] = newName;
-                TwitchUsersByName.Remove(oldName);
-                TwitchUsersByName.Add(newName, id);
+                var newUser = new TwitchUserData { TwitchUserId = id, DisplayName = newName };
+                TwitchUsersById[id] = newUser;
+                TwitchUsersByName.Remove(oldUser.DisplayName);
+                TwitchUsersByName.Add(newName, newUser);
 
-                Execute("UPDATE [TwitchUserData] SET [DisplayName] = @newname WHERE [TwitchUserId] = @id;", new { id = id, newname = newName });
+                Execute(@$"UPDATE [{TwitchUserDataTableName}] 
+                            SET [DisplayName] = @newName 
+                            WHERE [TwitchUserId] = @id;", new {id, newName });
             }
             else
             {
-                TwitchUsersById.Add(id, newName);
-                TwitchUsersByName.Add(newName, id);
+                var newUser = new TwitchUserData { TwitchUserId = id, DisplayName = newName };
+                TwitchUsersById.Add(id, newUser);
+                TwitchUsersByName.Add(newName, newUser);
 
-                Execute("INSERT INTO [TwitchUserData] ([DisplayName], [TwitchUserId]) VALUES (@newname, @id);", new { id = id, newname = newName });
+                Execute(@$"INSERT INTO [{TwitchUserDataTableName}] ([TwitchUserId], [DisplayName]) 
+                            VALUES (@id, @newName);", new { id, newName });
             }
         }
     }

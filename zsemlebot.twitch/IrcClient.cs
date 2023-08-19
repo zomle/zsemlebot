@@ -102,7 +102,11 @@ namespace zsemlebot.twitch
                 RawLogger = new TwitchRawLogger(now);
                 EventLogger = new TwitchEventLogger(now);
 
-                IncomingMessageQueue.Clear();
+                lock (padlock)
+                {
+                    IncomingMessageQueue.Clear();
+                }
+
                 OutgoingMessageQueue.Clear();
 
                 SendThread = new Thread(SendThreadWorker);
@@ -146,12 +150,8 @@ namespace zsemlebot.twitch
         {
             lock (padlock)
             {
-                if (IncomingMessageQueue.Count == 0)
-                {
-                    return null;
-                }
-
-                return IncomingMessageQueue.Dequeue();
+                IncomingMessageQueue.TryDequeue(out var result);
+                return result;
             }
         }
 
@@ -386,7 +386,7 @@ namespace zsemlebot.twitch
         {
             try
             {
-                
+
                 while (true)
                 {
                     if (!CanSendMessage())
@@ -411,7 +411,7 @@ namespace zsemlebot.twitch
                     try
                     {
                         SendSocketRaw(outgoingMessage);
-  
+
                         if (DateTime.Now - RateLimitWindowStart > RateLimitWindowSize)
                         {
                             RateLimitWindowStart = DateTime.Now;

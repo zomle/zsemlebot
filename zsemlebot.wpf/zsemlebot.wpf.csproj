@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\zsemlebot.core\zsemlebot.core.csproj" />
     <ProjectReference Include="..\zsemlebot.services\zsemlebot.services.csproj" />
     <ProjectReference Include="..\zsemlebot.twitch\zsemlebot.twitch.csproj" />

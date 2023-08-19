@@ -7,6 +7,7 @@ using System.Threading;
 using zsemlebot.core;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
+using zsemlebot.hota.Events;
 using zsemlebot.hota.Extensions;
 using zsemlebot.hota.Log;
 using zsemlebot.hota.Messages;
@@ -53,7 +54,7 @@ namespace zsemlebot.hota
         private Thread? ReadThread { get; set; }
         private Thread? PingThread { get; set; }
 
-        private Queue<HotaMessageBase> IncomingMessageQueue { get; set; }
+        private Queue<HotaEvent> IncomingEventQueue { get; set; }
         private HotaRawLogger RawLogger { get; set; }
         private HotaPackageLogger PackageLogger { get; set; }
         private HotaEventLogger EventLogger { get; set; }
@@ -73,10 +74,11 @@ namespace zsemlebot.hota
         }
 
         private DateTime LastPingSentAt { get; set; }
+        private static readonly object padlock = new object();
 
         public LobbyClient()
         {
-            IncomingMessageQueue = new Queue<HotaMessageBase>();
+            IncomingEventQueue = new Queue<HotaEvent>();
             Status = HotaStatus.Initialized;
 
             RawLogger = HotaRawLogger.Null;
@@ -104,7 +106,10 @@ namespace zsemlebot.hota
                 EventLogger = new HotaEventLogger(now);
                 PackageLogger = new HotaPackageLogger(now);
 
-                IncomingMessageQueue.Clear();
+                lock (padlock)
+                {
+                    IncomingEventQueue.Clear();
+                }
 
                 Status = HotaStatus.Connected;
 
@@ -123,10 +128,35 @@ namespace zsemlebot.hota
                 return false;
             }
         }
-        
+
         public void SendMessage(uint userId, string message)
         {
             SendSocketRaw(new SendChatMessage(userId, message));
+        }
+
+        public bool HasNewEvent()
+        {
+            lock (padlock)
+            {
+                return IncomingEventQueue.Count > 0;
+            }
+        }
+
+        public HotaEvent? GetNextEvent()
+        {
+            lock (padlock)
+            {
+                IncomingEventQueue.TryDequeue(out var result);
+                return result;
+            }
+        }
+
+        private void EnqueueEvent(HotaEvent newEvent)
+        {
+            lock (padlock)
+            {
+                IncomingEventQueue.Enqueue(newEvent);
+            }
         }
 
         private void StartPingThread()
@@ -239,7 +269,7 @@ namespace zsemlebot.hota
                         }
                     }
 
-                    while (TryReadPackage(buffer, out var package))
+                    while (buffer.TryReadPackage(out var package))
                     {
                         if (package == null)
                         {
@@ -255,24 +285,6 @@ namespace zsemlebot.hota
             {
                 Status = HotaStatus.Disconnected;
             }
-        }
-        private bool TryReadPackage(CircularByteBuffer buffer, out DataPackage? package)
-        {
-            bool lengthRead = buffer.TryPeekShort(out var nextPackageLength);
-            if (!lengthRead)
-            {
-                package = null;
-                return false;
-            }
-
-            if (!buffer.TryRead(nextPackageLength, out var packageContent))
-            {
-                package = null;
-                return false;
-            }
-
-            package = new DataPackage(packageContent);
-            return true;
         }
 
         private bool ProcessPackage(DataPackage dataPackage)
@@ -316,12 +328,12 @@ namespace zsemlebot.hota
                     return true;
 
                 case Constants.MsgType_UserLeftLobby: //user left lobby
-                    EventLogger.LogEvent(dataPackage.Type, "user left");
+                    ProcessUserLeftLobby1(dataPackage);
                     return true;
 
                 case Constants.MsgType_UserLeftLobby2: //user left lobby
-                    EventLogger.LogEvent(dataPackage.Type, "user left2");
-                    return true;                    
+                    ProcessUserLeftLobby2(dataPackage);
+                    return true;
 
                 case Constants.MsgType_SuccessfulLogin: //successfully logged in
                     Status = HotaStatus.Authenticated;
@@ -343,7 +355,7 @@ namespace zsemlebot.hota
                 case Constants.MsgType_Unknown2: //maybe end of data - refresh ui?
                     EventLogger.LogEvent(dataPackage.Type, "unknown2");
                     return true;
-                
+
                 case Constants.MsgType_GameStatusChange: //maybe game status change
                     ProcessGameStatusChange(dataPackage);
                     return true;
@@ -361,7 +373,7 @@ namespace zsemlebot.hota
         private void ProcessGameEnded(DataPackage dataPackage)
         {
             AssertType(dataPackage, Constants.MsgType_GameEnded);
-            
+
             var hostUserId = dataPackage.ReadInt(4);
             var gameId = dataPackage.ReadInt(8);
 
@@ -447,6 +459,25 @@ namespace zsemlebot.hota
             var userName = dataPackage.ReadString(0x14, 18);
 
             EventLogger.LogEvent(dataPackage.Type, "user join lby", $"{userName:-18}({userId.ToHexString()}) elo: {userElo}; rep: {userRep}");
+
+            EnqueueEvent(new UserJoinedLobby(userId, userName, userElo, userRep));
+        }
+
+        private void ProcessUserLeftLobby1(DataPackage dataPackage)
+        {
+            var userId = dataPackage.ReadInt(4);
+            
+            EventLogger.LogEvent(dataPackage.Type, "user left", $"user id: {userId.ToHexString()}");
+
+            EnqueueEvent(new UserLeftLobby(userId));
+        }
+        private void ProcessUserLeftLobby2(DataPackage dataPackage)
+        {
+            var userId = dataPackage.ReadInt(4);
+            
+            EventLogger.LogEvent(dataPackage.Type, "user left2", $"user id: {userId.ToHexString()}");
+
+            EnqueueEvent(new UserLeftLobby(userId));
         }
 
         private void ProcessIncomingMessage(DataPackage dataPackage)
@@ -467,6 +498,11 @@ namespace zsemlebot.hota
             };
 
             EventLogger.LogEvent(dataPackage.Type, "incoming chat", $"{sourceUserName:-18}({sourceUserId.ToHexString()}) -> ({destination}): {message}");
+
+            if (destinationType == Constants.ChatMessageDstType_PrivateMessage)
+            {
+                EnqueueEvent(new IncomingMessage(sourceUserId, message));
+            }
         }
 
         private void ProcessAuthenticationReply(DataPackage dataPackage)
@@ -494,7 +530,7 @@ namespace zsemlebot.hota
             }
         }
 
-        private static void AssertType(DataPackage package, short expectedType, [CallerMemberName]string? callerName = null)
+        private static void AssertType(DataPackage package, short expectedType, [CallerMemberName] string? callerName = null)
         {
             if (package == null)
             {

@@ -37,6 +37,20 @@ namespace zsemlebot.wpf.ViewModels
             }
         }
 
+        public int onlineUserCount;
+        public int OnlineUserCount
+        {
+            get { return onlineUserCount; }
+            set
+            {
+                if (onlineUserCount != value)
+                {
+                    onlineUserCount = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private uint clientVersion;
         public uint ClientVersion
         {
@@ -66,6 +80,7 @@ namespace zsemlebot.wpf.ViewModels
 
             HotaService.MessageReceived += HotaService_MessageReceived;
             HotaService.StatusChanged += HotaService_StatusChanged;
+            HotaService.UserListChanged += HotaService_UserListChanged;
 
             ConnectCommand = new CommandHandler(
                 () => HotaService.Connect(),
@@ -77,6 +92,11 @@ namespace zsemlebot.wpf.ViewModels
 
             TestCommand = new CommandHandler(
                 () => HotaService.Test());
+        }
+
+        private void HotaService_UserListChanged(object? sender, HotaUserListChangedArgs e)
+        {
+            OnlineUserCount = e.OnlineUserCount;
         }
 
         private void HotaService_StatusChanged(object? sender, HotaStatusChangedArgs e)

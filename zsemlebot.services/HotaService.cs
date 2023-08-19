@@ -1,12 +1,33 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.hota;
+using zsemlebot.hota.Events;
+using zsemlebot.repository;
+using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
+    public class HotaUser
+    {
+        public int HotaUserId { get; set; }
+        public string DisplayName { get; set; }
+        public int Elo { get; set; }
+        public int Rep { get; set; }
+
+        public HotaUser(UserJoinedLobby evnt)
+        {
+            HotaUserId = evnt.HotaUserId;
+            DisplayName = evnt.UserName;
+            Elo = evnt.Elo;
+            Rep = evnt.Rep;
+        }
+    }
+
     public class HotaService : IDisposable
     {
         #region Events
@@ -18,24 +39,35 @@ namespace zsemlebot.services
         }
 
         private EventHandler<HotaStatusChangedArgs>? statusChanged;
-        private bool disposedValue;
-
         public event EventHandler<HotaStatusChangedArgs> StatusChanged
         {
             add { statusChanged += value; }
             remove { statusChanged -= value; }
         }
+
+        private EventHandler<HotaUserListChangedArgs>? userListChanged;
+        public event EventHandler<HotaUserListChangedArgs> UserListChanged
+        {
+            add { userListChanged += value; }
+            remove { userListChanged -= value; }
+        }
         #endregion
 
+        private Dictionary<int, HotaUser> OnlineUsers { get; }
         private LobbyClient? Client { get; set; }
         private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
 
-        private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
+        private HotaRepository HotaRepository { get; set; }
+
+        private static readonly int[] WaitTimesBetweenReconnect = { 2, 5, 10, 15, 30 };
 
         public HotaService()
         {
             ReconnectCount = 0;
+            OnlineUsers = new Dictionary<int, HotaUser>(5000);
+
+            HotaRepository = new HotaRepository();
 
             HandleMessagesThread = new Thread(HandleMessagesWorker);
             HandleMessagesThread.Start();
@@ -66,7 +98,6 @@ namespace zsemlebot.services
             }
             return true;
         }
-
 
         public void HandleMessagesWorker()
         {
@@ -100,7 +131,13 @@ namespace zsemlebot.services
                         continue;
                     }
 
-                    Thread.Sleep(500);
+                    while (Client.HasNewEvent())
+                    {
+                        var newEvent = Client.GetNextEvent();
+                        HandleEvent(newEvent);
+                    }
+
+                    Thread.Sleep(200);
                 }
             }
             catch (ThreadInterruptedException)
@@ -141,6 +178,40 @@ namespace zsemlebot.services
             return TimeSpan.FromSeconds(WaitTimesBetweenReconnect[index]);
         }
 
+        private void HandleEvent(HotaEvent? hotaEvent)
+        {
+            if (hotaEvent == null)
+            {
+                return;
+            }
+
+            switch (hotaEvent)
+            {
+                case UserJoinedLobby ujl:
+                    HandleUserJoinedLobby(ujl);
+                    break;
+
+                case UserLeftLobby ull:
+                    HandleUserLeftLobby(ull);
+                    break;
+            }
+        }
+
+        private void HandleUserJoinedLobby(UserJoinedLobby evnt)
+        {
+            OnlineUsers[evnt.HotaUserId] = new HotaUser(evnt);
+            HotaRepository.UpdateHotaUser(evnt.HotaUserId, evnt.UserName, evnt.Elo, evnt.Rep);
+
+            userListChanged?.Invoke(this, new HotaUserListChangedArgs(OnlineUsers.Count));
+        }
+
+        private void HandleUserLeftLobby(UserLeftLobby evnt)
+        {
+            OnlineUsers.Remove(evnt.HotaUserId);
+
+            userListChanged?.Invoke(this, new HotaUserListChangedArgs(OnlineUsers.Count));
+        }
+
         private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
         {
             messageReceived?.Invoke(sender, e);
@@ -151,6 +222,8 @@ namespace zsemlebot.services
             statusChanged?.Invoke(sender, e);
         }
 
+        #region IDisposable implementation
+        private bool disposedValue;
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -185,5 +258,6 @@ namespace zsemlebot.services
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+        #endregion
     }
 }

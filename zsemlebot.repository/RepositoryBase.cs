@@ -14,17 +14,17 @@ namespace zsemlebot.repository
         protected const string ChannelSettingsTableName = "ChannelSettings";
         protected const string JoinedChannelsTableName = "JoinedChannels";
         protected const string TwitchUserDataTableName = "TwitchUserData";
+        protected const string HotaUserDataTableName = "HotaUserData";
 
         static RepositoryBase()
         {
             BackupDatabaseFile();
-
             CreateTables();
         }
 
         private static void CreateTables()
         {
-            ExecuteNonQuery(@"CREATE TABLE IF NOT EXISTS [ChannelSettings]
+            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{ChannelSettingsTableName}]
 				(
 					[Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 					[ChannelName] TEXT NOT NULL,
@@ -32,20 +32,33 @@ namespace zsemlebot.repository
 					[SettingValue] TEXT NOT NULL
 				)");
 
-            ExecuteNonQuery(@"CREATE TABLE IF NOT EXISTS [JoinedChannels]
+            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{JoinedChannelsTableName}]
 				(
 					[TwitchUserId] INTEGER NOT NULL PRIMARY KEY
 				)");
 
-            ExecuteNonQuery(@"CREATE TABLE IF NOT EXISTS [TwitchUserData]
+            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchUserDataTableName}]
 				(
 					[TwitchUserId] INTEGER NOT NULL PRIMARY KEY,
 					[DisplayName] TEXT NOT NULL
 				)");
 
-            ExecuteNonQuery(@"CREATE INDEX IF NOT EXISTS [IX_TwitchUserData_TwitchUserId] ON [TwitchUserData] 
+            ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_TwitchUserData_TwitchUserId] ON [{TwitchUserDataTableName}] 
                 (
 					[TwitchUserId]
+				)");
+
+            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{HotaUserDataTableName}]
+				(
+					[HotaUserId] INTEGER NOT NULL PRIMARY KEY,
+					[DisplayName] TEXT NOT NULL,
+                    [Elo] INTEGER,
+                    [Rep] INTEGER
+				)");
+
+            ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_HotaUserData_HotaUserId] ON [{HotaUserDataTableName}] 
+                (
+					[HotaUserId]
 				)");
         }
 
@@ -142,13 +155,14 @@ namespace zsemlebot.repository
 
         private static string GetConnectionString()
         {
-            var dbDirectory = Config.Instance.Global.FullDbDirectory;
             var dbFilename = Config.Instance.Global.FullDatabaseFilePath;
 
-            var builder = new SQLiteConnectionStringBuilder();
-            builder.DataSource = dbFilename;
-            builder.Version = 3;
-            builder.Pooling = true;
+            var builder = new SQLiteConnectionStringBuilder
+            {
+                DataSource = dbFilename,
+                Version = 3,
+                Pooling = true
+            };
 
             return builder.ToString();
         }
