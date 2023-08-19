@@ -41,7 +41,7 @@ namespace zsemlebot.repository
                 TwitchUsersByName.Remove(oldUser.DisplayName);
                 TwitchUsersByName.Add(newName, newUser);
 
-                Execute(@$"UPDATE [{TwitchUserDataTableName}] 
+                EnqueueWorkItem(@$"UPDATE [{TwitchUserDataTableName}] 
                             SET [DisplayName] = @newName 
                             WHERE [TwitchUserId] = @id;", new {id, newName });
             }
@@ -51,7 +51,7 @@ namespace zsemlebot.repository
                 TwitchUsersById.Add(id, newUser);
                 TwitchUsersByName.Add(newName, newUser);
 
-                Execute(@$"INSERT INTO [{TwitchUserDataTableName}] ([TwitchUserId], [DisplayName]) 
+                EnqueueWorkItem(@$"INSERT INTO [{TwitchUserDataTableName}] ([TwitchUserId], [DisplayName]) 
                             VALUES (@id, @newName);", new { id, newName });
             }
         }

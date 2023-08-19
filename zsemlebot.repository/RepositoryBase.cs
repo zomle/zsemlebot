@@ -5,6 +5,7 @@ using System.Data.SQLite;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using zsemlebot.core;
 
 namespace zsemlebot.repository
@@ -16,10 +17,25 @@ namespace zsemlebot.repository
         protected const string TwitchUserDataTableName = "TwitchUserData";
         protected const string HotaUserDataTableName = "HotaUserData";
 
+        private static readonly Queue<DatabaseWorkItem> WorkItemQueue;
+        private static readonly object padlock;
+        private static bool Disposing;
+
         static RepositoryBase()
         {
+            WorkItemQueue = new Queue<DatabaseWorkItem>();
+            padlock = new object();
+            Disposing = false;
+
             BackupDatabaseFile();
             CreateTables();
+
+            StartUpdateThread();
+        }
+
+        public static void Dispose()
+        {
+            Disposing = true;
         }
 
         private static void CreateTables()
@@ -53,7 +69,8 @@ namespace zsemlebot.repository
 					[HotaUserId] INTEGER NOT NULL PRIMARY KEY,
 					[DisplayName] TEXT NOT NULL,
                     [Elo] INTEGER,
-                    [Rep] INTEGER
+                    [Rep] INTEGER,
+                    [LastUpdatedAtUtc] TEXT NOT NULL
 				)");
 
             ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_HotaUserData_HotaUserId] ON [{HotaUserDataTableName}] 
@@ -67,11 +84,49 @@ namespace zsemlebot.repository
             return QueryFirst<int>("SELECT last_insert_rowid()");
         }
 
+        private static void StartUpdateThread()
+        {
+            new Thread(UpdateThreadWorker).Start();
+        }
+
+        private static void UpdateThreadWorker()
+        {
+            while (!Disposing)
+            {
+                var workItems = new List<DatabaseWorkItem>();
+                lock (padlock)
+                {
+                    while (WorkItemQueue.TryDequeue(out var tmp))
+                    {
+                        workItems.Add(tmp);
+                    }
+                }
+
+                if (workItems.Count > 0)
+                {
+                    ExecuteInTransaction(workItems);
+                }
+                Thread.Sleep(500);
+            }
+        }
+
         protected static void ExecuteNonQuery(string sql, object? param = null)
         {
             using var connection = GetConnection();
 
             connection.Execute(sql, param);
+        }
+        protected static void EnqueueWorkItem(string sql, object? param = null)
+        {
+            if (Disposing)
+            {
+                throw new InvalidOperationException("Repository is already disposed.");
+            }
+
+            lock (padlock)
+            {
+                WorkItemQueue.Enqueue(new DatabaseWorkItem(sql, param));
+            }
         }
 
         protected static IReadOnlyList<T> Query<T>(string sql, object? param = null)
@@ -123,6 +178,20 @@ namespace zsemlebot.repository
             var result = connection.Execute(sql, param);
             return result;
         }
+
+        private static void ExecuteInTransaction(IEnumerable<DatabaseWorkItem> workItems)
+        {
+            using var connection = GetConnection();
+            using var transaction = connection.BeginTransaction();
+
+            foreach (var workItem in workItems)
+            {
+                connection.Execute(workItem.Query, workItem.Parameters, transaction);
+            }
+
+            transaction.Commit();
+        }
+
         private static SQLiteConnection GetConnection()
         {
             var connectionString = GetConnectionString();

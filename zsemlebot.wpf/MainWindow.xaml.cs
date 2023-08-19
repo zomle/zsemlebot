@@ -13,6 +13,8 @@ namespace zsemlebot.wpf
     {
         private TwitchService TwitchService { get; }
         private HotaService HotaService { get; }
+        private BotService BotService { get; }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -21,6 +23,7 @@ namespace zsemlebot.wpf
 
             TwitchService = new TwitchService();
             HotaService = new HotaService();
+            BotService = new BotService();
 
             DataContext = new MainViewModel(TwitchService, HotaService);
         }
@@ -29,6 +32,7 @@ namespace zsemlebot.wpf
         {
             TwitchService.Dispose();
             HotaService.Dispose();
+            BotService.Dispose();
         }
     }
 }

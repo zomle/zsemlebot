@@ -45,8 +45,8 @@ namespace zsemlebot.repository
                     HotaUsersByName.Add(newName, newUser);
                 }
 
-                Execute(@$"UPDATE [{HotaUserDataTableName}] 
-                            SET [DisplayName] = @newName, [Elo] = @elo, [Rep] = @rep 
+                EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
+                            SET [DisplayName] = @newName, [Elo] = @elo, [Rep] = @rep, [LastUpdatedAtUtc] = datetime('now') 
                             WHERE [HotaUserId] = @id;", new { id, newName, elo, rep });
             }
             else
@@ -55,8 +55,8 @@ namespace zsemlebot.repository
                 HotaUsersById.Add(id, newUser);
                 HotaUsersByName.Add(newName, newUser);
 
-                Execute(@$"INSERT INTO [{HotaUserDataTableName}] ([HotaUserId], [DisplayName], [Elo], [Rep]) 
-                           VALUES (@id, @newName, @elo, @rep);", new { id, newName, elo, rep });
+                EnqueueWorkItem(@$"INSERT INTO [{HotaUserDataTableName}] ([HotaUserId], [DisplayName], [Elo], [Rep], [LastUpdatedAtUtc]) 
+                           VALUES (@id, @newName, @elo, @rep, datetime('now') );", new { id, newName, elo, rep });
             }
         }
 
@@ -69,8 +69,8 @@ namespace zsemlebot.repository
 
             user.Elo = newElo;
 
-            Execute(@$"UPDATE [{HotaUserDataTableName}] 
-                        SET [Elo] = @newElo
+            EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
+                        SET [Elo] = @newElo, [LastUpdatedAtUtc] = datetime('now') 
                         WHERE [HotaUserId] = @id;", new { id, newElo });
         }
 
@@ -83,8 +83,8 @@ namespace zsemlebot.repository
 
             user.Rep = newRep;
 
-            Execute(@$"UPDATE [{HotaUserDataTableName}] 
-                        SET [Rep] = @newRep
+            EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
+                        SET [Rep] = @newRep, [LastUpdatedAtUtc] = datetime('now') 
                         WHERE [HotaUserId] = @id;", new { id, newRep });
         }
     }

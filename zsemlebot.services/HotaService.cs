@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using zsemlebot.core.Enums;
@@ -8,26 +7,9 @@ using zsemlebot.core.EventArgs;
 using zsemlebot.hota;
 using zsemlebot.hota.Events;
 using zsemlebot.repository;
-using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
-    public class HotaUser
-    {
-        public int HotaUserId { get; set; }
-        public string DisplayName { get; set; }
-        public int Elo { get; set; }
-        public int Rep { get; set; }
-
-        public HotaUser(UserJoinedLobby evnt)
-        {
-            HotaUserId = evnt.HotaUserId;
-            DisplayName = evnt.UserName;
-            Elo = evnt.Elo;
-            Rep = evnt.Rep;
-        }
-    }
-
     public class HotaService : IDisposable
     {
         #region Events
