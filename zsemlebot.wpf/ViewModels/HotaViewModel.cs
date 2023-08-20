@@ -9,8 +9,8 @@ namespace zsemlebot.wpf.ViewModels
 {
     public class HotaViewModel : ViewModelBase
     {
-        private HotaStatus status;
-        public HotaStatus Status
+        private string status;
+        public string Status
         {
             get { return status; }
             set
@@ -74,6 +74,8 @@ namespace zsemlebot.wpf.ViewModels
         public HotaViewModel(HotaService hotaService)
         {
             lastMessageReceivedAt = "-";
+            status = nameof(HotaStatus.Initialized);
+
             clientVersion = Config.Instance.Hota.ClientVersion;
 
             HotaService = hotaService;
@@ -84,11 +86,11 @@ namespace zsemlebot.wpf.ViewModels
 
             ConnectCommand = new CommandHandler(
                 () => HotaService.Connect(),
-                () => Status == HotaStatus.Initialized);
+                () => Status == nameof(HotaStatus.Initialized));
 
             ReconnectCommand = new CommandHandler(
                 () => HotaService.Reconnect(),
-                () => Status != HotaStatus.Initialized);
+                () => Status != nameof(HotaStatus.Initialized));
 
             TestCommand = new CommandHandler(
                 () => HotaService.Test());
@@ -101,7 +103,14 @@ namespace zsemlebot.wpf.ViewModels
 
         private void HotaService_StatusChanged(object? sender, HotaStatusChangedArgs e)
         {
-            Status = e.NewStatus;
+            if (e.MinimumClientVersion == null)
+            {
+                Status = e.NewStatus.ToString();
+            }
+            else
+            {
+                Status = $"{e.NewStatus} (min version: {e.MinimumClientVersion})";
+            }            
         }
 
         private void HotaService_MessageReceived(object? sender, MessageReceivedArgs e)

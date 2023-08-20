@@ -24,6 +24,16 @@ namespace zsemlebot.twitch
             SourceUserId = GetUserId(tags);
         }
 
+        public string? GetTagValue(string key)
+        {
+            if (!Tags.TryGetValue(key, out var tag))
+            {
+                return null;                
+            }
+
+            return tag.Value;
+        }
+
         private static string? GetUserName(string? source)
         {
             if (source == null)

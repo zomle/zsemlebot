@@ -157,12 +157,22 @@ namespace zsemlebot.twitch
 
         public void JoinChannel(string channel)
         {
+            if (!channel.StartsWith('#'))
+            {
+                throw new ArgumentException("Channel must start with a '#'", nameof(channel));
+            }
+
             SendMessage($"JOIN {channel}");
             EventLogger.LogJoinChannel(channel);
         }
 
         public void PartChannel(string channel)
         {
+            if (!channel.StartsWith('#'))
+            {
+                throw new ArgumentException("Channel must start with a '#'", nameof(channel));
+            }
+
             SendMessage($"PART {channel}");
             EventLogger.LogPartChannel(channel);
         }
@@ -170,6 +180,12 @@ namespace zsemlebot.twitch
         public void SendPrivMsg(string channel, string message)
         {
             SendMessage($"PRIVMSG {channel} :{message}");
+            EventLogger.LogSentMsg(channel, message);
+        }
+
+        public void SendPrivMsg(string parentMessageId, string channel, string message)
+        {
+            SendMessage($"reply-parent-msg-id={parentMessageId} PRIVMSG {channel} :{message}");
             EventLogger.LogSentMsg(channel, message);
         }
 

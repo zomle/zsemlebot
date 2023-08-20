@@ -6,7 +6,9 @@
 	},
 	twitch: {
 		user: "",
-		oauthtoken: ""
+		oauthtoken: "",
+		adminchannel: "",
+		adminuserid: 0
 	},
 	hota: {
 		serveraddress: "",

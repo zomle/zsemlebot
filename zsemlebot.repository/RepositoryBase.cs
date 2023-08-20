@@ -16,6 +16,8 @@ namespace zsemlebot.repository
         protected const string JoinedChannelsTableName = "JoinedChannels";
         protected const string TwitchUserDataTableName = "TwitchUserData";
         protected const string HotaUserDataTableName = "HotaUserData";
+        protected const string TwitchHotaUserLinkTableName = "TwitchHotaUserLink";
+        protected const string TwitchHotaUserLinkRequestTableName = "TwitchHotaUserLinkRequest";
 
         private static readonly Queue<DatabaseWorkItem> WorkItemQueue;
         private static readonly object padlock;
@@ -29,6 +31,8 @@ namespace zsemlebot.repository
 
             BackupDatabaseFile();
             CreateTables();
+
+            CleanUpOldData();
 
             StartUpdateThread();
         }
@@ -77,6 +81,26 @@ namespace zsemlebot.repository
                 (
 					[HotaUserId]
 				)");
+
+            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchHotaUserLinkTableName}]
+				(
+                    [TwitchUserId] INTEGER NOT NULL,
+					[HotaUserId] INTEGER NOT NULL,
+                    [CreatedAtUtc] TEXT NOT NULL
+				)");
+
+            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchHotaUserLinkRequestTableName}]
+				(
+                    [TwitchUserName] TEXT NOT NULL,
+					[HotaUserId] INTEGER NOT NULL,
+                    [AuthCode] TEXT NOT NULL,
+                    [ValidUntilUtc] TEXT NOT NULL
+				)");
+        }
+
+        private static void CleanUpOldData() 
+        {
+            ExecuteNonQuery(@$"DELETE FROM [{TwitchHotaUserLinkRequestTableName}] WHERE [ValidUntilUtc] < datetime('now');");
         }
 
         protected static int GetLastRowId()

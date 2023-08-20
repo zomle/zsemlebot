@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using zsemlebot.core;
+using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.hota;
@@ -40,7 +42,8 @@ namespace zsemlebot.services
         private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
 
-        private HotaRepository HotaRepository { get; set; }
+        private static HotaRepository HotaRepository { get { return HotaRepository.Instance; } }
+        private static BotRepository BotRepository { get { return BotRepository.Instance; } }
 
         private static readonly int[] WaitTimesBetweenReconnect = { 2, 5, 10, 15, 30 };
 
@@ -48,8 +51,6 @@ namespace zsemlebot.services
         {
             ReconnectCount = 0;
             OnlineUsers = new Dictionary<int, HotaUser>(5000);
-
-            HotaRepository = new HotaRepository();
 
             HandleMessagesThread = new Thread(HandleMessagesWorker);
             HandleMessagesThread.Start();
@@ -154,6 +155,11 @@ namespace zsemlebot.services
             }
         }
 
+        public void SendChatMessage(uint targetHotaUserId, string message)
+        {
+            Client?.SendMessage(targetHotaUserId, message);
+        }
+
         private TimeSpan GetWaitBetweenReconnects()
         {
             int index = ReconnectCount >= WaitTimesBetweenReconnect.Length ? WaitTimesBetweenReconnect.Length - 1 : ReconnectCount;
@@ -176,13 +182,19 @@ namespace zsemlebot.services
                 case UserLeftLobby ull:
                     HandleUserLeftLobby(ull);
                     break;
+
+                case IncomingMessage im:
+                    HandleIncomingMessage(im);
+                    break;
             }
         }
 
         private void HandleUserJoinedLobby(UserJoinedLobby evnt)
         {
-            OnlineUsers[evnt.HotaUserId] = new HotaUser(evnt);
-            HotaRepository.UpdateHotaUser(evnt.HotaUserId, evnt.UserName, evnt.Elo, evnt.Rep);
+            var hotaUser = new HotaUser(evnt.HotaUserId, evnt.UserName, evnt.Elo, evnt.Rep);
+
+            OnlineUsers[evnt.HotaUserId] = hotaUser;
+            HotaRepository.UpdateHotaUser(hotaUser);
 
             userListChanged?.Invoke(this, new HotaUserListChangedArgs(OnlineUsers.Count));
         }
@@ -192,6 +204,71 @@ namespace zsemlebot.services
             OnlineUsers.Remove(evnt.HotaUserId);
 
             userListChanged?.Invoke(this, new HotaUserListChangedArgs(OnlineUsers.Count));
+        }
+
+        private void HandleIncomingMessage(IncomingMessage evnt)
+        {
+            if (!evnt.Message.StartsWith('!'))
+            {
+                return;
+            }
+
+            var tokens = evnt.Message.Split(' ', 2);
+            HandleCommand(evnt.SourceUserId, tokens[0], tokens.Length > 1 ? tokens[1] : null);
+        }
+
+        private void HandleCommand(int sourceUserId, string command, string? parameters)
+        {
+            var hotaUser = HotaRepository.GetUser(sourceUserId);
+            if (hotaUser == null)
+            {
+                return;
+            }
+
+            switch (command)
+            {
+                case Constants.Command_LinkMe:
+                    HandleLinkMeCommand(hotaUser, parameters);
+                    break;
+            }
+        }
+
+        private void HandleLinkMeCommand(HotaUser source, string? parameters)
+        {
+            if (parameters == null)
+            {
+                return;
+            }
+
+            string twitchUserName = parameters;
+
+            //get existing user link request, if any
+            var existingRequest = BotRepository.GetUserLinkRequest(source.HotaUserId, twitchUserName);
+            if (existingRequest != null)
+            {
+                //if it's not valid anymore, delete it
+                if (existingRequest.ValidUntilUtc < DateTime.UtcNow)
+                {
+                    BotRepository.DeleteUserLinkRequest(source.HotaUserId, twitchUserName);
+                    existingRequest = null;
+                }
+            }
+
+            string authCode;
+            //if a valid link request exists, update the timer and get the auth code, otherwise create a new request
+            if (existingRequest != null)
+            {
+                BotRepository.UpdateUserLinkRequest(existingRequest, Constants.UserLinkValidityLengthInMins);
+                authCode = existingRequest.AuthCode;
+            }
+            else
+            {
+                authCode = RandomGenerator.GenerateCode();
+                BotRepository.CreateUserLinkRequest(source.HotaUserId, twitchUserName, authCode, Constants.UserLinkValidityLengthInMins);
+            }
+
+            //send a message to the user
+            SendChatMessage((uint)source.HotaUserId, string.Format(Constants.Message_UserLinkLobbyMessage, authCode, twitchUserName, Config.Instance.Twitch.AdminChannel));
         }
 
         private void Client_MessageReceived(object? sender, MessageReceivedArgs e)

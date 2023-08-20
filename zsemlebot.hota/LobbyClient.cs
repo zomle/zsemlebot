@@ -44,10 +44,12 @@ namespace zsemlebot.hota
                 if (status != value)
                 {
                     status = value;
-                    statusChanged?.Invoke(this, new HotaStatusChangedArgs(value));
+                    statusChanged?.Invoke(this, new HotaStatusChangedArgs(value, MinimumClientVersion));
                 }
             }
         }
+
+        private int? MinimumClientVersion { get; set; }
 
         private Socket? Socket { get; set; }
 
@@ -515,16 +517,19 @@ namespace zsemlebot.hota
             {
                 case 1:
                     EventLogger.LogEvent(dataPackage.Type, "login ok");
+                    MinimumClientVersion = null;
                     StartPingThread();
                     return;
 
                 case 2:
                     EventLogger.LogEvent(dataPackage.Type, "login not ok", "Already logged in.");
+                    MinimumClientVersion = null;
                     Status = HotaStatus.Disconnected;
                     return;
 
                 default:
                     EventLogger.LogEvent(dataPackage.Type, "login not ok", $"Minimum required version: {reply}");
+                    MinimumClientVersion = reply;
                     Status = HotaStatus.ObsoleteClient;
                     return;
             }

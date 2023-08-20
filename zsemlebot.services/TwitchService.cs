@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
+using zsemlebot.core;
+using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.repository;
@@ -37,15 +40,15 @@ namespace zsemlebot.services
         private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
 
-        private TwitchRepository TwitchRepository { get; set; }
+        private static TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
+        private static HotaRepository HotaRepository { get { return HotaRepository.Instance; } }
+        private static BotRepository BotRepository { get { return BotRepository.Instance; } }
 
         private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
 
         public TwitchService()
         {
             ReconnectCount = 0;
-
-            TwitchRepository = new TwitchRepository();
 
             HandleMessagesThread = new Thread(HandleMessagesWorker);
             HandleMessagesThread.Start();
@@ -73,7 +76,6 @@ namespace zsemlebot.services
             }
             return true;
         }
-
 
         public void HandleMessagesWorker()
         {
@@ -149,6 +151,16 @@ namespace zsemlebot.services
             }
         }
 
+        public void SendChatMessage(string channel, string message)
+        {
+            Client?.SendPrivMsg(channel, message);
+        }
+
+        public void ReplyChatMessage(string parentMessageId, string channel, string message)
+        {
+            Client?.SendPrivMsg(parentMessageId, channel, message);
+        }
+
         private TimeSpan GetWaitBetweenReconnects()
         {
             int index = ReconnectCount >= WaitTimesBetweenReconnect.Length ? WaitTimesBetweenReconnect.Length - 1 : ReconnectCount;
@@ -185,6 +197,59 @@ namespace zsemlebot.services
             var message = tokens[1][1..];
 
             privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, displayName ?? "-", message));
+
+            if (userId != null && message.StartsWith('!'))
+            {
+                var twitchUser = TwitchRepository.GetUser((int)userId);
+                var cmdTokens = message.Split(' ', 2);
+                var messageId = rawMessage.GetTagValue("id");
+
+                HandleCommand(messageId, channel, twitchUser, cmdTokens[0], cmdTokens.Length > 1 ? cmdTokens[1] : null);
+            }
+        }
+
+        private void HandleCommand(string? sourceMessageId, string channel, TwitchUser sender, string command, string? parameters)
+        {
+            switch (command)
+            {
+                case Constants.Command_LinkMe:
+                    HandleLinkMeCommand(sourceMessageId, channel, sender, parameters);
+                    break;
+            }
+        }
+
+        private void HandleLinkMeCommand(string? sourceMessageId, string channel, TwitchUser sender, string? parameters)
+        {
+            if (parameters == null)
+            {
+                return;
+            }
+
+            var requests = BotRepository.ListUserLinkRequests(sender.DisplayName);
+            if (requests.Count == 0)
+            {
+                return;
+            }
+
+            var authCode = parameters;
+            var request = requests.FirstOrDefault(r => r.AuthCode == authCode);
+            if (request == null)
+            {
+                return;
+            }
+
+            BotRepository.AddTwitchHotaUserLink(sender.TwitchUserId, request.HotaUserId);
+            BotRepository.DeleteUserLinkRequest(request.HotaUserId, request.TwitchUserName);
+
+            var hotaUser = HotaRepository.GetUser(request.HotaUserId);
+            if (sourceMessageId == null)
+            {
+                SendChatMessage(channel, string.Format(Constants.Message_UserLinkTwitchMessage, sender.DisplayName, hotaUser?.DisplayName));
+            }
+            else
+            {
+                ReplyChatMessage(sourceMessageId, channel, string.Format(Constants.Message_UserLinkTwitchMessage, sender.DisplayName, hotaUser?.DisplayName));
+            }
         }
 
         private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
@@ -195,6 +260,14 @@ namespace zsemlebot.services
         private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
         {
             statusChanged?.Invoke(sender, e);
+            
+            if (e.NewStatus == TwitchStatus.Authenticated)
+            {
+                var channel = $"#{Config.Instance.Twitch.AdminChannel}";
+
+                Client?.JoinChannel(channel);
+                Client?.SendPrivMsg(channel, "Arrived");
+            }
         }
 
         public void SendCommand(string rawCommandText)
