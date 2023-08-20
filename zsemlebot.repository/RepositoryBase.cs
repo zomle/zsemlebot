@@ -60,7 +60,7 @@ namespace zsemlebot.repository
             ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchUserDataTableName}]
 				(
 					[TwitchUserId] INTEGER NOT NULL PRIMARY KEY,
-					[DisplayName] TEXT NOT NULL
+					[DisplayName] TEXT NOT NULL COLLATE NOCASE
 				)");
 
             ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_TwitchUserData_TwitchUserId] ON [{TwitchUserDataTableName}] 
@@ -71,7 +71,7 @@ namespace zsemlebot.repository
             ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{HotaUserDataTableName}]
 				(
 					[HotaUserId] INTEGER NOT NULL PRIMARY KEY,
-					[DisplayName] TEXT NOT NULL,
+					[DisplayName] TEXT NOT NULL COLLATE NOCASE,
                     [Elo] INTEGER,
                     [Rep] INTEGER,
                     [LastUpdatedAtUtc] TEXT NOT NULL
@@ -91,7 +91,7 @@ namespace zsemlebot.repository
 
             ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchHotaUserLinkRequestTableName}]
 				(
-                    [TwitchUserName] TEXT NOT NULL,
+                    [TwitchUserName] TEXT NOT NULL COLLATE NOCASE,
 					[HotaUserId] INTEGER NOT NULL,
                     [AuthCode] TEXT NOT NULL,
                     [ValidUntilUtc] TEXT NOT NULL

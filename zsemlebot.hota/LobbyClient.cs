@@ -33,6 +33,14 @@ namespace zsemlebot.hota
             add { statusChanged += value; }
             remove { statusChanged -= value; }
         }
+
+        private EventHandler<OwnInfoReceivedArgs>? ownInfoReceived;
+        public event EventHandler<OwnInfoReceivedArgs> OwnInfoReceived
+        {
+            add { ownInfoReceived += value; }
+            remove { ownInfoReceived -= value; }
+        }
+
         #endregion
 
         private HotaStatus status;
@@ -426,6 +434,8 @@ namespace zsemlebot.hota
             var userName = dataPackage.ReadString(0x14, 18);
 
             EventLogger.LogEvent(dataPackage.Type, "own info", $"user id: {userId.ToHexString()}; name: {userName}; elo: {userElo}; rep: {userRep}");
+
+            ownInfoReceived?.Invoke(this, new OwnInfoReceivedArgs(userName, userId));
         }
 
         private void ProcessGameRoomItem(DataPackage dataPackage)

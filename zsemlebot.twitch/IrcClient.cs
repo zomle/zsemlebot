@@ -185,7 +185,7 @@ namespace zsemlebot.twitch
 
         public void SendPrivMsg(string parentMessageId, string channel, string message)
         {
-            SendMessage($"reply-parent-msg-id={parentMessageId} PRIVMSG {channel} :{message}");
+            SendMessage($"@reply-parent-msg-id={parentMessageId} PRIVMSG {channel} :{message}");
             EventLogger.LogSentMsg(channel, message);
         }
 

@@ -39,6 +39,10 @@ namespace zsemlebot.services
 
         private Dictionary<int, HotaUser> OnlineUsers { get; }
         private LobbyClient? Client { get; set; }
+        
+        private string OwnUserName { get; set; }
+        private int OwnUserId { get; set; }
+        
         private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
 
@@ -67,8 +71,7 @@ namespace zsemlebot.services
             }
 
             Client = new LobbyClient();
-            Client.StatusChanged += Client_StatusChanged;
-            Client.MessageReceived += Client_MessageReceived;
+            AddEventHandlers(Client);
 
             var connected = Client.Connect();
             if (!connected)
@@ -136,14 +139,12 @@ namespace zsemlebot.services
             }
 
             var tmpClient = new LobbyClient();
-            tmpClient.StatusChanged += Client_StatusChanged;
-            tmpClient.MessageReceived += Client_MessageReceived;
+            AddEventHandlers(tmpClient);
 
             var reconnected = tmpClient.Connect();
             if (reconnected)
             {
-                Client.StatusChanged -= Client_StatusChanged;
-                Client.MessageReceived -= Client_MessageReceived;
+                RemoveEventHandlers(Client);
                 Client.Dispose();
 
                 Client = tmpClient;
@@ -208,6 +209,11 @@ namespace zsemlebot.services
 
         private void HandleIncomingMessage(IncomingMessage evnt)
         {
+            if (evnt.SourceUserId == OwnUserId)
+            {
+                return;
+            }
+
             if (!evnt.Message.StartsWith('!'))
             {
                 return;
@@ -276,9 +282,29 @@ namespace zsemlebot.services
             messageReceived?.Invoke(sender, e);
         }
 
+        private void Client_OwnInfoReceived(object? sender, OwnInfoReceivedArgs e)
+        {
+            OwnUserId = e.UserId;
+            OwnUserName = e.DisplayName;
+        }
+
         private void Client_StatusChanged(object? sender, HotaStatusChangedArgs e)
         {
             statusChanged?.Invoke(sender, e);
+        }
+
+        private void AddEventHandlers(LobbyClient client)
+        {
+            client.StatusChanged += Client_StatusChanged;
+            client.MessageReceived += Client_MessageReceived;
+            client.OwnInfoReceived += Client_OwnInfoReceived;
+        }
+
+        private void RemoveEventHandlers(LobbyClient client)
+        {
+            client.StatusChanged -= Client_StatusChanged;
+            client.MessageReceived -= Client_MessageReceived;
+            client.OwnInfoReceived -= Client_OwnInfoReceived;
         }
 
         #region IDisposable implementation
@@ -299,8 +325,7 @@ namespace zsemlebot.services
                     {
                         if (Client != null)
                         {
-                            Client.StatusChanged -= Client_StatusChanged;
-                            Client.MessageReceived -= Client_MessageReceived;
+                            RemoveEventHandlers(Client);
                             Client.Dispose();
                         }
                     }
