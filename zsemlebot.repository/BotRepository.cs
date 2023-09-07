@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using zsemlebot.core.Domain;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
@@ -9,9 +10,9 @@ namespace zsemlebot.repository
     {
         public static readonly BotRepository Instance;
 
-        private Dictionary<int, List<TwitchHotaLink>> LinksByHotaUserId { get; set; }
+        private Dictionary<uint, List<TwitchHotaLink>> LinksByHotaUserId { get; set; }
         private Dictionary<int, List<TwitchHotaLink>> LinksByTwitchUserId { get; set; }
-        private List<TwitchHotaLinkRequest> UserLinkRequests { get; set; }
+        private List<TwitchHotaLinkRequestData> UserLinkRequests { get; set; }
 
         static BotRepository()
         {
@@ -20,53 +21,53 @@ namespace zsemlebot.repository
 
         private BotRepository()
         {
-            LinksByHotaUserId = new Dictionary<int, List<TwitchHotaLink>>();
+            LinksByHotaUserId = new Dictionary<uint, List<TwitchHotaLink>>();
             LinksByTwitchUserId = new Dictionary<int, List<TwitchHotaLink>>();
 
-            UserLinkRequests = new List<TwitchHotaLinkRequest>();
+            UserLinkRequests = new List<TwitchHotaLinkRequestData>();
 
             LoadTwitchHotaUserLinks();
             LoadTwitchHotaUserLinkRequests();
         }
 
-        public void CreateUserLinkRequest(int hotaUserId, string twitchUserName, string authCode, int validityLengthInMins)
+        public void CreateUserLinkRequest(uint hotaUserId, string twitchUserName, string authCode, int validityLengthInMins)
         {
             //delete potentially existing request
             DeleteUserLinkRequest(hotaUserId, twitchUserName);
 
-            var request = new TwitchHotaLinkRequest { TwitchUserName = twitchUserName, HotaUserId = hotaUserId, AuthCode = authCode, ValidUntilUtc = DateTime.UtcNow + TimeSpan.FromMinutes(validityLengthInMins) };
+            var request = new TwitchHotaLinkRequestData { TwitchUserName = twitchUserName, HotaUserId = hotaUserId, AuthCode = authCode, ValidUntilUtc = DateTime.UtcNow + TimeSpan.FromMinutes(validityLengthInMins) };
             UserLinkRequests.Add(request);
 
             EnqueueWorkItem(@$"INSERT INTO [{TwitchHotaUserLinkRequestTableName}] ([TwitchUserName], [HotaUserId], [AuthCode], [ValidUntilUtc]) 
                            VALUES (@twitchUserName, @hotaUserId, @authCode, datetime('now', '+{validityLengthInMins} minutes'));", new { twitchUserName, hotaUserId, authCode });
         }
 
-        public core.Domain.TwitchHotaLinkRequest? GetUserLinkRequest(int hotaUserId, string twitchUserName)
+        public TwitchHotaLinkRequest? GetUserLinkRequest(uint hotaUserId, string twitchUserName)
         {
             var result = UserLinkRequests
                 .Where(r => r.HotaUserId == hotaUserId && string.Equals(r.TwitchUserName, twitchUserName, StringComparison.InvariantCultureIgnoreCase))
-                .Select(r => new core.Domain.TwitchHotaLinkRequest { HotaUserId = r.HotaUserId, TwitchUserName = r.TwitchUserName, AuthCode = r.AuthCode, ValidUntilUtc = r.ValidUntilUtc })
+                .Select(r => new TwitchHotaLinkRequest { HotaUserId = r.HotaUserId, TwitchUserName = r.TwitchUserName, AuthCode = r.AuthCode, ValidUntilUtc = r.ValidUntilUtc })
                 .FirstOrDefault();
             return result;
         }
 
-        public IReadOnlyList<core.Domain.TwitchHotaLinkRequest> ListUserLinkRequests(string twitchUserName)
+        public IReadOnlyList<TwitchHotaLinkRequest> ListUserLinkRequests(string twitchUserName)
         {
             var result = UserLinkRequests
                 .Where(r => string.Equals(r.TwitchUserName, twitchUserName, StringComparison.InvariantCultureIgnoreCase))
-                .Select(r => new core.Domain.TwitchHotaLinkRequest { HotaUserId = r.HotaUserId, TwitchUserName = r.TwitchUserName, AuthCode = r.AuthCode, ValidUntilUtc = r.ValidUntilUtc })
+                .Select(r => new TwitchHotaLinkRequest { HotaUserId = r.HotaUserId, TwitchUserName = r.TwitchUserName, AuthCode = r.AuthCode, ValidUntilUtc = r.ValidUntilUtc })
                 .ToList();
             return result;
         }
 
-        public void DeleteUserLinkRequest(int hotaUserId, string twitchUserName)
+        public void DeleteUserLinkRequest(uint hotaUserId, string twitchUserName)
         {
             UserLinkRequests.RemoveAll(r => r.HotaUserId == hotaUserId && string.Equals(r.TwitchUserName, twitchUserName, StringComparison.InvariantCultureIgnoreCase));
             EnqueueWorkItem(@$"DELETE FROM [{TwitchHotaUserLinkRequestTableName}]
                            WHERE [TwitchUserName] = @twitchUserName AND [HotaUserId] = @hotaUserId", new { twitchUserName, hotaUserId });
         }
 
-        public void UpdateUserLinkRequest(core.Domain.TwitchHotaLinkRequest request, int validityLengthInMins)
+        public void UpdateUserLinkRequest(TwitchHotaLinkRequest request, int validityLengthInMins)
         {
             request.ValidUntilUtc = DateTime.UtcNow + TimeSpan.FromMinutes(validityLengthInMins);
             EnqueueWorkItem(@$"UPDATE [{TwitchHotaUserLinkRequestTableName}]
@@ -75,16 +76,7 @@ namespace zsemlebot.repository
                                 new { twitchUserName = request.TwitchUserName, hotaUserId = request.HotaUserId });
         }
 
-        private void LoadTwitchHotaUserLinkRequests()
-        {
-            var models = Query<TwitchHotaLinkRequest>($"SELECT [TwitchUserName], [HotaUserId], [AuthCode], [ValidUntilUtc] FROM [{TwitchHotaUserLinkRequestTableName}];");
-            foreach (var model in models)
-            {
-                UserLinkRequests.Add(model);
-            }
-        }
-
-        public void AddTwitchHotaUserLink(int twitchUserId, int hotaUserId)
+        public void AddTwitchHotaUserLink(int twitchUserId, uint hotaUserId)
         {
             var newLink = new TwitchHotaLink { TwitchUserId = twitchUserId, HotaUserId = hotaUserId };
             AddTwitchHotaUserLink(newLink);
@@ -93,7 +85,7 @@ namespace zsemlebot.repository
                            VALUES (@twitchUserId, @hotaUserId, datetime('now'));", new { twitchUserId, hotaUserId });
         }
 
-        public void DelTwitchHotaUserLink(int twitchUserId, int hotaUserId)
+        public void DelTwitchHotaUserLink(int twitchUserId, uint hotaUserId)
         {
             if (LinksByHotaUserId.TryGetValue(hotaUserId, out var lst))
             {
@@ -107,6 +99,59 @@ namespace zsemlebot.repository
 
             EnqueueWorkItem(@$"DELETE FROM [{TwitchHotaUserLinkTableName}]
                                 WHERE [TwitchUserId] = @twitchUserId AND [HotaUserId] = @hotaUserId;", new { twitchUserId, hotaUserId });
+        }
+
+        public TwitchUserLinks? GetLinksForTwitchName(string twitchUserName)
+        {
+            var twitchUser = TwitchRepository.Instance.GetUser(twitchUserName);
+            if (twitchUser == null)
+            {
+                return null;
+            }
+
+            return GetLinksForTwitchUser(twitchUser);
+        }
+
+        public TwitchUserLinks? GetLinksForTwitchId(int twitchUserId)
+        {
+            var twitchUser = TwitchRepository.Instance.GetUser(twitchUserId);
+            if (twitchUser == null)
+            {
+                return null;
+            }
+
+            return GetLinksForTwitchUser(twitchUser);
+        }
+
+        public TwitchUserLinks GetLinksForTwitchUser(TwitchUser twitchUser)
+        {
+            if (!LinksByTwitchUserId.TryGetValue(twitchUser.TwitchUserId, out var links))
+            {
+                return new TwitchUserLinks(twitchUser, Array.Empty<HotaUser>());
+            }
+
+            var linkedHotaUsers = new List<HotaUser>();
+            foreach (var link in links)
+            {
+                var hotaUser = HotaRepository.Instance.GetUser(link.HotaUserId);
+                if (hotaUser == null)
+                {
+                    continue;
+                }
+
+                linkedHotaUsers.Add(hotaUser);
+            }
+
+            return new TwitchUserLinks(twitchUser, linkedHotaUsers);
+        }
+
+        private void LoadTwitchHotaUserLinkRequests()
+        {
+            var models = Query<TwitchHotaLinkRequestData>($"SELECT [TwitchUserName], [HotaUserId], [AuthCode], [ValidUntilUtc] FROM [{TwitchHotaUserLinkRequestTableName}];");
+            foreach (var model in models)
+            {
+                UserLinkRequests.Add(model);
+            }
         }
 
         private void LoadTwitchHotaUserLinks()

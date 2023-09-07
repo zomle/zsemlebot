@@ -50,6 +50,48 @@ namespace zsemlebot.wpf.ViewModels
                 }
             }
         }
+        
+        public int gamesNotFull;
+        public int GamesNotFull
+        {
+            get { return gamesNotFull; }
+            set
+            {
+                if (gamesNotFull != value)
+                {
+                    gamesNotFull = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int gamesNotStarted;
+        public int GamesNotStarted
+        {
+            get { return gamesNotStarted; }
+            set
+            {
+                if (gamesNotStarted != value)
+                {
+                    gamesNotStarted = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public int gamesInProgress;
+        public int GamesInProgress
+        {
+            get { return gamesInProgress; }
+            set
+            {
+                if (gamesInProgress != value)
+                {
+                    gamesInProgress = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         private uint clientVersion;
         public uint ClientVersion
@@ -74,7 +116,7 @@ namespace zsemlebot.wpf.ViewModels
         public HotaViewModel(HotaService hotaService)
         {
             lastMessageReceivedAt = "-";
-            status = nameof(HotaStatus.Initialized);
+            status = nameof(HotaClientStatus.Initialized);
 
             clientVersion = Config.Instance.Hota.ClientVersion;
 
@@ -83,17 +125,25 @@ namespace zsemlebot.wpf.ViewModels
             HotaService.MessageReceived += HotaService_MessageReceived;
             HotaService.StatusChanged += HotaService_StatusChanged;
             HotaService.UserListChanged += HotaService_UserListChanged;
+            HotaService.GameListChanged += HotaService_GameListChanged;
 
             ConnectCommand = new CommandHandler(
                 () => HotaService.Connect(),
-                () => Status == nameof(HotaStatus.Initialized));
+                () => Status == nameof(HotaClientStatus.Initialized));
 
             ReconnectCommand = new CommandHandler(
                 () => HotaService.Reconnect(),
-                () => Status != nameof(HotaStatus.Initialized));
+                () => Status != nameof(HotaClientStatus.Initialized));
 
             TestCommand = new CommandHandler(
                 () => HotaService.Test());
+        }
+
+        private void HotaService_GameListChanged(object? sender, HotaGameListChangedArgs e)
+        {
+            GamesInProgress = e.GamesInProgress;
+            GamesNotStarted = e.GamesNotStarted;
+            GamesNotFull = e.GamesNotFull;
         }
 
         private void HotaService_UserListChanged(object? sender, HotaUserListChangedArgs e)
@@ -110,7 +160,7 @@ namespace zsemlebot.wpf.ViewModels
             else
             {
                 Status = $"{e.NewStatus} (min version: {e.MinimumClientVersion})";
-            }            
+            }
         }
 
         private void HotaService_MessageReceived(object? sender, MessageReceivedArgs e)

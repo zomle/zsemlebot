@@ -48,5 +48,10 @@ namespace zsemlebot.hota
         {
             return content.ReadInt(index);
         }
+
+        public uint ReadUInt(int index)
+        {
+            return content.ReadUInt(index);
+        }
     }
 }

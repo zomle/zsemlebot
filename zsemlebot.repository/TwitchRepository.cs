@@ -41,6 +41,16 @@ namespace zsemlebot.repository
             return new TwitchUser(userData.TwitchUserId, userData.DisplayName);
         }
 
+        public TwitchUser? GetUser(string userName)
+        {
+            if (!TwitchUsersByName.TryGetValue(userName.ToLower(), out var userData))
+            {
+                return null;
+            }
+
+            return new TwitchUser(userData.TwitchUserId, userData.DisplayName);
+        }
+
         public void UpdateTwitchUserName(int id, string newName)
         {
             if (TwitchUsersById.TryGetValue(id, out var oldUser))

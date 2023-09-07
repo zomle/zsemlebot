@@ -4,10 +4,10 @@ namespace zsemlebot.hota.Events
 {
     public class IncomingMessage : HotaEvent
     {
-        public int SourceUserId { get; }
+        public uint SourceUserId { get; }
         public string Message { get; }
 
-        public IncomingMessage(int sourceUserId, string message)
+        public IncomingMessage(uint sourceUserId, string message)
         {
             SourceUserId = sourceUserId;
             Message = message;

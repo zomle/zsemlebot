@@ -48,6 +48,7 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
@@ -62,9 +63,20 @@
 
                 <Label Grid.Row="2" Grid.Column="0">Online users:</Label>
                 <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.OnlineUserCount}"></TextBlock>
+
+                <Label Grid.Row="3" Grid.Column="0">Active games:</Label>
+                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                    <Label>Not full:</Label>
+                    <TextBlock  VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.GamesNotFull}"></TextBlock>
+                    <Label>Not started:</Label>
+                    <TextBlock  VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.GamesNotStarted}"></TextBlock>
+                    <Label>In progress:</Label>
+                    <TextBlock  VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.GamesInProgress}"></TextBlock>
+                </StackPanel>
                 
-                <Label Grid.Row="3" Grid.Column="0">Last message received at:</Label>
-                <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.LastMessageReceivedAt}"></TextBlock>
+                
+                <Label Grid.Row="4" Grid.Column="0">Last message received at:</Label>
+                <TextBlock Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.LastMessageReceivedAt}"></TextBlock>
             </Grid>
         </GroupBox>
     </Grid>

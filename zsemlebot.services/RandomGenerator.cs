@@ -8,7 +8,7 @@ namespace zsemlebot.services
         //some characters are missing to avoid confusion with weird font types (e.g.: 1,I,l and O,0).
         private const string ValidCodeCharacters = "23456789qwertyuiopasdfghjkzxcvbnmQWERTYUPASDFGHJKLZXCVBNM";
 
-        public static string GenerateCode(int length = 5)
+        public static string GenerateCode(int length = 4)
         {
             var sb = new StringBuilder(length);
             for (int i = 0; i < length; i++)

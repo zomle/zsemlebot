@@ -1,11 +1,12 @@
-﻿
+﻿using System.Linq;
+
 namespace zsemlebot.hota.Events
 {
     public class UserLeftLobby : HotaEvent
     {
-        public int HotaUserId { get; }
+        public uint HotaUserId { get; }
 
-        public UserLeftLobby(int userId)
+        public UserLeftLobby(uint userId)
         {
             HotaUserId = userId;
         }

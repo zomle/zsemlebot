@@ -2,7 +2,7 @@
 
 namespace zsemlebot.core.Enums
 {
-    public enum HotaStatus
+    public enum HotaClientStatus
     {
         Initialized,
         Connecting,

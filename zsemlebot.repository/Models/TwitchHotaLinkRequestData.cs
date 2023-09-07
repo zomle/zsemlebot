@@ -2,10 +2,10 @@
 
 namespace zsemlebot.repository.Models
 {
-    internal class TwitchHotaLinkRequest
+    internal class TwitchHotaLinkRequestData
     {
         public string TwitchUserName { get; set; }
-        public int HotaUserId { get; set; }
+        public uint HotaUserId { get; set; }
         public string AuthCode { get; set; }
 
         public DateTime ValidUntilUtc { get; set; }

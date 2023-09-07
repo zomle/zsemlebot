@@ -46,6 +46,14 @@ namespace zsemlebot.hota.Extensions
                          (buffer[index + 1] << 8) +
                           buffer[index]);
         }
+        public static uint ReadUInt(this byte[] buffer, int index)
+        {
+           
+            return (uint)((buffer[index + 3] << 24) +
+                         (buffer[index + 2] << 16) +
+                         (buffer[index + 1] << 8) +
+                          buffer[index]);
+        }
 
         public static void WriteByte(this byte[] buffer, int index, byte value)
         {

@@ -5,10 +5,11 @@ namespace zsemlebot.repository.Models
 {
     internal class HotaUserData
     {
-        public int HotaUserId { get; set; }
+        public uint HotaUserId { get; set; }
         public string DisplayName { get; set; }
         public int Elo { get; set; }
         public int Rep { get; set; }
+        public DateTime LastUpdatedAtUtc { get; set; }
 
         public HotaUserData()
         {
@@ -21,6 +22,7 @@ namespace zsemlebot.repository.Models
             DisplayName = user.DisplayName;
             Elo = user.Elo;
             Rep = user.Rep;
+            LastUpdatedAtUtc = user.UpdatedAtUtc;
         }
     }
 }

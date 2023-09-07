@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using zsemlebot.core.Domain;
+using zsemlebot.core.Enums;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
@@ -9,7 +10,7 @@ namespace zsemlebot.repository
     {
         public static readonly HotaRepository Instance;
 
-        private Dictionary<int, HotaUserData> HotaUsersById { get; set; }
+        private Dictionary<uint, HotaUserData> HotaUsersById { get; set; }
         private Dictionary<string, HotaUserData> HotaUsersByName { get; set; }
 
         static HotaRepository()
@@ -19,7 +20,7 @@ namespace zsemlebot.repository
 
         private HotaRepository()
         {
-            HotaUsersById = new Dictionary<int, HotaUserData>();
+            HotaUsersById = new Dictionary<uint, HotaUserData>();
             HotaUsersByName = new Dictionary<string, HotaUserData>();
 
             LoadHotaUsers();
@@ -27,7 +28,7 @@ namespace zsemlebot.repository
 
         private void LoadHotaUsers()
         {
-            var models = Query<HotaUserData>($"SELECT [HotaUserId], [DisplayName], [Elo], [Rep] FROM [{HotaUserDataTableName}];");
+            var models = Query<HotaUserData>($"SELECT [HotaUserId], [DisplayName], [Elo], [Rep], [LastUpdatedAtUtc] FROM [{HotaUserDataTableName}];");
             foreach (var model in models)
             {
                 HotaUsersById.Add(model.HotaUserId, model);
@@ -37,7 +38,6 @@ namespace zsemlebot.repository
 
         public void UpdateHotaUser(HotaUser hotaUser)
         {
-
             if (HotaUsersById.TryGetValue(hotaUser.HotaUserId, out var oldUser))
             {
                 if (oldUser.DisplayName == hotaUser.DisplayName && oldUser.Elo == hotaUser.Elo && oldUser.Rep == hotaUser.Rep)
@@ -48,6 +48,8 @@ namespace zsemlebot.repository
                 if (oldUser.DisplayName != hotaUser.DisplayName)
                 {
                     var model = new HotaUserData(hotaUser);
+                    model.LastUpdatedAtUtc = DateTime.UtcNow;
+
                     HotaUsersById[hotaUser.HotaUserId] = model;
                     HotaUsersByName.Remove(oldUser.DisplayName.ToLower());
                     HotaUsersByName.Add(hotaUser.DisplayName.ToLower(), model);
@@ -61,6 +63,8 @@ namespace zsemlebot.repository
             else
             {
                 var model = new HotaUserData(hotaUser);
+                model.LastUpdatedAtUtc = DateTime.UtcNow;
+
                 HotaUsersById.Add(hotaUser.HotaUserId, model);
                 HotaUsersByName.Add(hotaUser.DisplayName.ToLower(), model);
 
@@ -70,7 +74,7 @@ namespace zsemlebot.repository
             }
         }
 
-        public void UpdateElo(int id, int newElo)
+        public void UpdateElo(uint id, int newElo)
         {
             if (!HotaUsersById.TryGetValue(id, out var user))
             {
@@ -78,13 +82,13 @@ namespace zsemlebot.repository
             }
 
             user.Elo = newElo;
-
+            user.LastUpdatedAtUtc = DateTime.UtcNow;
             EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
                         SET [Elo] = @newElo, [LastUpdatedAtUtc] = datetime('now') 
                         WHERE [HotaUserId] = @id;", new { id, newElo });
         }
 
-        public void UpdateRep(int id, int newRep)
+        public void UpdateRep(uint id, int newRep)
         {
             if (!HotaUsersById.TryGetValue(id, out var user))
             {
@@ -92,19 +96,31 @@ namespace zsemlebot.repository
             }
 
             user.Rep = newRep;
+            user.LastUpdatedAtUtc = DateTime.UtcNow;
 
             EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
                         SET [Rep] = @newRep, [LastUpdatedAtUtc] = datetime('now') 
                         WHERE [HotaUserId] = @id;", new { id, newRep });
         }
 
-        public HotaUser? GetUser(int userId)
+        public HotaUser? GetUser(uint userId)
         {
-            if (!HotaUsersById.TryGetValue(userId, out var user))
+            if (!HotaUsersById.TryGetValue(userId, out var userData))
             {
                 return null;
             }
-            return new HotaUser(user.HotaUserId, user.DisplayName, user.Elo, user.Rep);
+
+            return new HotaUser(userData.HotaUserId, userData.DisplayName, userData.Elo, userData.Rep, HotaUserStatus.Offline, userData.LastUpdatedAtUtc);
+        }
+
+        public HotaUser? GetUser(string userName)
+        {
+            if (!HotaUsersByName.TryGetValue(userName.ToLower(), out var userData))
+            {
+                return null;
+            }
+
+            return new HotaUser(userData.HotaUserId, userData.DisplayName, userData.Elo, userData.Rep, HotaUserStatus.Offline, userData.LastUpdatedAtUtc);
         }
     }
 }

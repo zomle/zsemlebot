@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using zsemlebot.core;
+using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
+using zsemlebot.core.Extensions;
 using zsemlebot.hota.Events;
 using zsemlebot.hota.Extensions;
 using zsemlebot.hota.Log;
@@ -43,8 +47,8 @@ namespace zsemlebot.hota
 
         #endregion
 
-        private HotaStatus status;
-        public HotaStatus Status
+        private HotaClientStatus status;
+        public HotaClientStatus Status
         {
             get { return status; }
             private set
@@ -89,11 +93,51 @@ namespace zsemlebot.hota
         public LobbyClient()
         {
             IncomingEventQueue = new Queue<HotaEvent>();
-            Status = HotaStatus.Initialized;
+            Status = HotaClientStatus.Initialized;
 
             RawLogger = HotaRawLogger.Null;
             EventLogger = HotaEventLogger.Null;
             PackageLogger = HotaPackageLogger.Null;
+        }
+
+        public void ReplayBinaryFile(string filePath)
+        {
+            var thread = new Thread(_ => { ReplayBinaryFileThreadWorker(filePath); });
+            thread.Start();
+        }
+
+        private void ReplayBinaryFileThreadWorker(string filePath)
+        {
+            Debug.WriteLine("Replay thread started.");
+
+            var buffer = new CircularByteBuffer(1024 * 1024);
+            using var stream = new BinaryReader(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read));
+
+            while (true)
+            {
+                var bytes = stream.ReadBytes(1024);
+                if (bytes.Length == 0)
+                {
+                    break;
+                }
+
+                buffer.PushData(bytes, 0, bytes.Length);
+
+                while (buffer.TryReadPackage(out var package))
+                {
+                    if (package == null)
+                    {
+                        continue;
+                    }
+
+                    LastMessageReceivedAt = DateTime.Now;
+                    ProcessPackage(package);
+                }
+
+                Thread.Sleep(1);
+            }
+
+            Debug.WriteLine("Replay thread finished.");
         }
 
         public bool Connect()
@@ -106,7 +150,7 @@ namespace zsemlebot.hota
             var now = DateTime.Now;
 
             Socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-            Status = HotaStatus.Connecting;
+            Status = HotaClientStatus.Connecting;
 
             try
             {
@@ -121,7 +165,7 @@ namespace zsemlebot.hota
                     IncomingEventQueue.Clear();
                 }
 
-                Status = HotaStatus.Connected;
+                Status = HotaClientStatus.Connected;
 
                 SendLoginMessage();
 
@@ -134,7 +178,7 @@ namespace zsemlebot.hota
             }
             catch (Exception)
             {
-                Status = HotaStatus.Disconnected;
+                Status = HotaClientStatus.Disconnected;
                 return false;
             }
         }
@@ -142,6 +186,16 @@ namespace zsemlebot.hota
         public void SendMessage(uint userId, string message)
         {
             SendSocketRaw(new SendChatMessage(userId, message));
+        }
+
+        public void GetUserElo(uint userId)
+        {
+            SendSocketRaw(new RequestUserEloMessage(userId));
+        }
+
+        public void GetUserRep(uint userId)
+        {
+            SendSocketRaw(new RequestUserRepMessage(userId));
         }
 
         public bool HasNewEvent()
@@ -181,11 +235,8 @@ namespace zsemlebot.hota
             {
                 while (true)
                 {
-                    var timeSinceLastMessage = DateTime.Now - LastMessageReceivedAt;
-                    bool noMessagesForAWhile = timeSinceLastMessage > PingFrequency;
-                    bool shouldPingAgain = LastMessageReceivedAt > LastPingSentAt || (DateTime.Now - LastPingSentAt > PingFrequency);
-
-                    if (Status == HotaStatus.Connected && noMessagesForAWhile && shouldPingAgain)
+                    bool shouldPingAgain = DateTime.Now - LastPingSentAt > PingFrequency;
+                    if (Status == HotaClientStatus.Connected && shouldPingAgain)
                     {
                         LastPingSentAt = DateTime.Now;
                         SendPing();
@@ -200,7 +251,7 @@ namespace zsemlebot.hota
             }
             catch (Exception)
             {
-                Status = HotaStatus.Disconnected;
+                Status = HotaClientStatus.Disconnected;
             }
         }
 
@@ -249,13 +300,13 @@ namespace zsemlebot.hota
                 {
                     if (Socket == null)
                     {
-                        Status = HotaStatus.Disconnected;
+                        Status = HotaClientStatus.Disconnected;
                         return;
                     }
 
                     if (!Socket.Connected)
                     {
-                        Status = HotaStatus.Disconnected;
+                        Status = HotaClientStatus.Disconnected;
                         return;
                     }
 
@@ -293,7 +344,7 @@ namespace zsemlebot.hota
             }
             catch (Exception)
             {
-                Status = HotaStatus.Disconnected;
+                Status = HotaClientStatus.Disconnected;
             }
         }
 
@@ -301,76 +352,88 @@ namespace zsemlebot.hota
         {
             switch (dataPackage.Type)
             {
-                case Constants.MsgType_AuthReply: //auth reply
+                case Constants.MsgTypex31_AuthReply: //auth reply
                     ProcessAuthenticationReply(dataPackage);
                     return true;
 
-                case Constants.MsgType_UserJoinedLobby: //user joined lobby
+                case Constants.MsgTypex33_UserJoinedLobby: //user joined lobby
                     ProcessUserJoinedLobby(dataPackage);
                     return true;
 
-                case Constants.MsgType_OwnInfo: //own info
+                case Constants.MsgTypex34_OwnInfo: //own info
                     ProcessOwnInfo(dataPackage);
                     return true;
 
-                case Constants.MsgType_UserStatusChange: //user status change
+                case Constants.MsgTypex36_UserStatusChange: //user status change
                     ProcessUserStatusChange(dataPackage);
                     return true;
 
-                case Constants.MsgType_GameRoomItem: //game room item
+                case Constants.MsgTypex38_GameRoomItem: //game room item
                     ProcessGameRoomItem(dataPackage);
                     return true;
 
-                case Constants.MsgType_GameUserChange: //game-user change
+                case Constants.MsgTypex39_GameUserChange: //game-user change
                     ProcessGameUserChange(dataPackage);
                     return true;
 
-                case Constants.MsgType_GameEnded: //game ended
+                case Constants.MsgTypex3A_GameEnded: //game ended
                     ProcessGameEnded(dataPackage);
                     return true;
 
-                case Constants.MsgType_OldChatMessage: //old chat message
+                case Constants.MsgTypex46_OldChatMessage: //old chat message
                     EventLogger.LogEvent(dataPackage.Type, "old chat");
                     return true;
 
-                case Constants.MsgType_NewChatMessage: //incoming chat message
+                case Constants.MsgTypex47_NewChatMessage: //incoming chat message
                     ProcessIncomingMessage(dataPackage);
                     return true;
 
-                case Constants.MsgType_UserLeftLobby: //user left lobby
+                case Constants.MsgTypex53_UserLeftLobby: //user left lobby
                     ProcessUserLeftLobby1(dataPackage);
                     return true;
 
-                case Constants.MsgType_UserLeftLobby2: //user left lobby
+                case Constants.MsgTypex69_UserRepUpdate:
+                    ProcessUserRepUpdate(dataPackage);
+                    return true;
+
+                case Constants.MsgTypex6B_UserLeftLobby2: //user left lobby
                     ProcessUserLeftLobby2(dataPackage);
                     return true;
 
-                case Constants.MsgType_SuccessfulLogin: //successfully logged in
-                    Status = HotaStatus.Authenticated;
+                case Constants.MsgTypex72_SuccessfulLogin: //successfully logged in
+                    Status = HotaClientStatus.Authenticated;
                     EventLogger.LogEvent(dataPackage.Type, "login ok");
                     return true;
+                
+                case Constants.MsgTypex75_UserEloUpdate:
+                    ProcessUserEloUpdate(dataPackage);
+                    return true;
 
-                case Constants.MsgType_DonationGoal: //donation goal status
+                case Constants.MsgTypex7E_NewDonation: //new donation received
+                    EventLogger.LogEvent(dataPackage.Type, "new donation");
+                    return true;
+
+                case Constants.MsgTypex7F_DonationGoal: //donation goal status
                     EventLogger.LogEvent(dataPackage.Type, "donation goal");
                     return true;
 
-                case Constants.MsgType_Donators: //donators
-                    EventLogger.LogEvent(dataPackage.Type, "donator");
+                case Constants.MsgTypex80_Donations: //donations
+                    EventLogger.LogEvent(dataPackage.Type, "donations");
                     return true;
 
-                case Constants.MsgType_Unknown1:
+                case Constants.MsgTypex85_Unknown1:
                     EventLogger.LogEvent(dataPackage.Type, "unknown1");
                     return true;
 
-                case Constants.MsgType_Unknown2: //maybe end of data - refresh ui?
+                case Constants.MsgTypex8A_Unknown2: //maybe end of data - refresh ui?
                     EventLogger.LogEvent(dataPackage.Type, "unknown2");
                     return true;
 
-                case Constants.MsgType_GameStatusChange: //maybe game status change
-                    ProcessGameStatusChange(dataPackage);
+                case Constants.MsgTypex8C_GameStarted: //game started
+                    ProcessGameStarted(dataPackage);
                     return true;
 
-                case Constants.MsgType_UnknownUserEvent:
+                case Constants.MsgTypex6C_UnknownUserEvent:
                     EventLogger.LogEvent(dataPackage.Type, "unkwn usr evnt", $"user id: {dataPackage.ReadInt(4).ToHexString()}");
                     return true;
 
@@ -382,53 +445,76 @@ namespace zsemlebot.hota
 
         private void ProcessGameEnded(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_GameEnded);
+            AssertType(dataPackage, Constants.MsgTypex3A_GameEnded);
 
-            var hostUserId = dataPackage.ReadInt(4);
+            var hostUserId = dataPackage.ReadUInt(4);
             var gameId = dataPackage.ReadInt(8);
 
             EventLogger.LogEvent(dataPackage.Type, "game ended", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}");
+
+            EnqueueEvent(new GameEnded(new GameKey(hostUserId, gameId)));
         }
 
-        private void ProcessGameStatusChange(DataPackage dataPackage)
+        private void ProcessGameStarted(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_GameStatusChange);
+            AssertType(dataPackage, Constants.MsgTypex8C_GameStarted);
 
             var hostUserId = dataPackage.ReadInt(4);
             var gameId = dataPackage.ReadInt(8);
-            var field = dataPackage.ReadInt(0xc);
+            var playerCount = dataPackage.ReadInt(0xc);
 
-            EventLogger.LogEvent(dataPackage.Type, "game stus chg", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}; field: {field.ToHexString()}");
+            EventLogger.LogEvent(dataPackage.Type, "game started", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}; player count: {playerCount.ToHexString()}");
         }
 
         private void ProcessUserStatusChange(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_UserStatusChange);
+            AssertType(dataPackage, Constants.MsgTypex36_UserStatusChange);
 
-            var userId = dataPackage.ReadInt(4);
+            var userId = dataPackage.ReadUInt(4);
             var newStatus = dataPackage.ReadInt(8);
             EventLogger.LogEvent(dataPackage.Type, "user stus chg", $"user id: {userId.ToHexString()}; new status: {newStatus}");
+
+            EnqueueEvent(new UserStatusChange(userId, (short)newStatus));
         }
 
         private void ProcessGameUserChange(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_GameUserChange);
+            AssertType(dataPackage, Constants.MsgTypex39_GameUserChange);
 
-            var hostUserId = dataPackage.ReadInt(4);
+            var hostUserId = dataPackage.ReadUInt(4);
             var gameId = dataPackage.ReadInt(8);
-            var otherUserId = dataPackage.ReadInt(0xc);
-            var field1 = dataPackage.ReadByte(0x10);
-            var unkwnid = dataPackage.ReadInt(0x11);
-            var field2 = dataPackage.ReadByte(0x15);
+            var otherUserId = dataPackage.ReadUInt(0xc);
+            var joinLeaveRoom1 = dataPackage.ReadByte(0x10);
+            var otherGameId = dataPackage.ReadInt(0x11);
+            var gameStatusUpdate = dataPackage.ReadByte(0x15);
 
-            EventLogger.LogEvent(dataPackage.Type, "game user chg", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}; other user id: {otherUserId.ToHexString()}; field1: {field1.ToHexString()}; unknownid: {unkwnid.ToHexString()}; field2: {field2.ToHexString()}");
+            EventLogger.LogEvent(dataPackage.Type, "game user chg", $"host user id: {hostUserId.ToHexString()}; game id: {gameId.ToHexString()}; other user id: {otherUserId.ToHexString()}; join/leave: {joinLeaveRoom1.ToHexString()}; other game id: {otherGameId.ToHexString()}; game status update: {gameStatusUpdate.ToHexString()}");
+
+            if (otherUserId == 0)
+            {
+                return;
+            }
+
+            if (joinLeaveRoom1 == 0x01)
+            {
+                EnqueueEvent(new GameRoomUserJoined(new GameKey(hostUserId, gameId), otherUserId));
+            }
+            else if (joinLeaveRoom1 == 0xFF)
+            {
+                EnqueueEvent(new GameRoomUserLeft(new GameKey(hostUserId, gameId), otherUserId));
+            }
+
+            if (gameStatusUpdate == 0x01)
+            {
+                EnqueueEvent(new GameStarted(new GameKey(hostUserId, gameId)));
+            }
         }
 
         private void ProcessOwnInfo(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_OwnInfo);
+            AssertType(dataPackage, Constants.MsgTypex34_OwnInfo);
 
-            var userId = dataPackage.ReadInt(8);
+            var userId = dataPackage.ReadUInt(8);
             var userElo = dataPackage.ReadInt(0xC);
             var userRep = dataPackage.ReadInt(0x10);
             var userName = dataPackage.ReadString(0x14, 18);
@@ -440,53 +526,77 @@ namespace zsemlebot.hota
 
         private void ProcessGameRoomItem(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_GameRoomItem);
+            AssertType(dataPackage, Constants.MsgTypex38_GameRoomItem);
 
-            var hostUserId = dataPackage.ReadInt(4);
+            var hostUserId = dataPackage.ReadUInt(4);
             var gameId = dataPackage.ReadInt(8);
             var gameDescription = dataPackage.ReadString(0xC, 64);
-            var isPasswordProtected = dataPackage.ReadByte(0x4C) == 1; //???
-            var maxNumberOfPlayers = dataPackage.ReadByte(0x4D);
+            var isPasswordProtected = dataPackage.ReadByte(0x4C) == 1;
+            var maxPlayerCount = dataPackage.ReadByte(0x4D);
             var isRanked = dataPackage.ReadByte(0x4E) == 1;
-            var isLoadGame = dataPackage.ReadByte(0x4F) == 1; //????
+            var isLoadGame = dataPackage.ReadByte(0x4F) == 1;
             var currentNumberOfPlayers = dataPackage.ReadByte(0x50);
 
-            var joinedUserIds = new List<int>();
+            var joinedUserIds = new List<uint>();
             for (int i = 0; i < currentNumberOfPlayers; i++)
             {
-                joinedUserIds.Add(dataPackage.ReadInt(0x51 + i * 4));
+                joinedUserIds.Add(dataPackage.ReadUInt(0x51 + i * 4));
             }
             var hostUserElo = dataPackage.ReadInt(0x76);
 
             EventLogger.LogEvent(dataPackage.Type, "game created", $"game id: {gameId.ToHexString()}; host user id: {hostUserId.ToHexString()} ({hostUserElo}); Joined users: {string.Join(", ", joinedUserIds.Select(u => u.ToHexString()))}");
+
+            EnqueueEvent(new GameRoomCreated(new GameKey(hostUserId, gameId), gameDescription, isRanked, isLoadGame, maxPlayerCount, joinedUserIds));
         }
 
         private void ProcessUserJoinedLobby(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_UserJoinedLobby);
+            AssertType(dataPackage, Constants.MsgTypex33_UserJoinedLobby);
 
-            var userId = dataPackage.ReadInt(8);
+            var status = dataPackage.ReadShort(6);
+            var userId = dataPackage.ReadUInt(8);
             var userElo = dataPackage.ReadInt(0xC);
             var userRep = dataPackage.ReadInt(0x10);
             var userName = dataPackage.ReadString(0x14, 18);
 
-            EventLogger.LogEvent(dataPackage.Type, "user join lby", $"{userName:-18}({userId.ToHexString()}) elo: {userElo}; rep: {userRep}");
+            EventLogger.LogEvent(dataPackage.Type, "user join lby", $"{userName:-18}({userId.ToHexString()}) elo: {userElo}; rep: {userRep}; status: {status}");
 
-            EnqueueEvent(new UserJoinedLobby(userId, userName, userElo, userRep));
+            EnqueueEvent(new UserJoinedLobby(userId, userName, userElo, userRep, status));
+        }
+
+        private void ProcessUserEloUpdate(DataPackage dataPackage)
+        {
+            var userId = dataPackage.ReadUInt(4);
+            var elo = dataPackage.ReadInt(8);
+
+            EventLogger.LogEvent(dataPackage.Type, "user elo", $"user id: {userId.ToHexString()}; elo: {elo}");
+
+            EnqueueEvent(new UserEloUpdate(userId, elo));
+        }
+
+        private void ProcessUserRepUpdate(DataPackage dataPackage)
+        {
+            var userId = dataPackage.ReadUInt(4);
+            var friendLists = dataPackage.ReadShort(8);
+            var blackLists = dataPackage.ReadShort(10);
+
+            EventLogger.LogEvent(dataPackage.Type, "user rep", $"user id: {userId.ToHexString()}; friendlists: {friendLists}; blacklists: {blackLists}");
+
+            EnqueueEvent(new UserRepUpdate(userId, friendLists, blackLists));
         }
 
         private void ProcessUserLeftLobby1(DataPackage dataPackage)
         {
-            var userId = dataPackage.ReadInt(4);
-            
+            var userId = dataPackage.ReadUInt(4);
+
             EventLogger.LogEvent(dataPackage.Type, "user left", $"user id: {userId.ToHexString()}");
 
             EnqueueEvent(new UserLeftLobby(userId));
         }
         private void ProcessUserLeftLobby2(DataPackage dataPackage)
         {
-            var userId = dataPackage.ReadInt(4);
-            
+            var userId = dataPackage.ReadUInt(4);
+
             EventLogger.LogEvent(dataPackage.Type, "user left2", $"user id: {userId.ToHexString()}");
 
             EnqueueEvent(new UserLeftLobby(userId));
@@ -494,9 +604,9 @@ namespace zsemlebot.hota
 
         private void ProcessIncomingMessage(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_NewChatMessage);
+            AssertType(dataPackage, Constants.MsgTypex47_NewChatMessage);
 
-            var sourceUserId = dataPackage.ReadInt(4);
+            var sourceUserId = dataPackage.ReadUInt(4);
             var destinationId = dataPackage.ReadInt(8);
             var destinationType = dataPackage.ReadByte(0xC);
             var sourceUserName = dataPackage.ReadString(0x22, 17);
@@ -519,7 +629,7 @@ namespace zsemlebot.hota
 
         private void ProcessAuthenticationReply(DataPackage dataPackage)
         {
-            AssertType(dataPackage, Constants.MsgType_AuthReply);
+            AssertType(dataPackage, Constants.MsgTypex31_AuthReply);
 
             var reply = dataPackage.ReadInt(4);
 
@@ -534,13 +644,13 @@ namespace zsemlebot.hota
                 case 2:
                     EventLogger.LogEvent(dataPackage.Type, "login not ok", "Already logged in.");
                     MinimumClientVersion = null;
-                    Status = HotaStatus.Disconnected;
+                    Status = HotaClientStatus.Disconnected;
                     return;
 
                 default:
                     EventLogger.LogEvent(dataPackage.Type, "login not ok", $"Minimum required version: {reply}");
                     MinimumClientVersion = reply;
-                    Status = HotaStatus.ObsoleteClient;
+                    Status = HotaClientStatus.ObsoleteClient;
                     return;
             }
         }

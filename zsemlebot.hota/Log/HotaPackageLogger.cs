@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using zsemlebot.core.Extensions;
 using zsemlebot.core.Log;
 using zsemlebot.hota.Extensions;
 
@@ -52,7 +53,8 @@ namespace zsemlebot.hota.Log
                 var sb = new StringBuilder();
                 sb.AppendLine($"Type: 0x{package.Type.ToHexString()}; Length: {package.ReadShort(0)} bytes; {(isHandled ? "handled" : "not handled")}");
                 sb.AppendLine();
-
+                sb.AppendLine(package.Content.ToHexString());
+                sb.AppendLine();
                 int startIndex = 0;
                 for (int i = 0; i < package.Content.Length; i++)
                 {

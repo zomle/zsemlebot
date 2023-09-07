@@ -2,13 +2,13 @@
 {
     public class OwnInfoReceivedArgs
     {
-        public OwnInfoReceivedArgs(string userName, int userId)
+        public OwnInfoReceivedArgs(string userName, uint userId)
         {
             DisplayName = userName;
             UserId = userId;
         }
 
         public string DisplayName { get; set; }
-        public int UserId { get; set; }
+        public uint UserId { get; set; }
     }
 }

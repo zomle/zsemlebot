@@ -2,6 +2,7 @@
 using System.Windows;
 using zsemlebot.core;
 using zsemlebot.services;
+using zsemlebot.services.Log;
 using zsemlebot.wpf.ViewModels;
 
 namespace zsemlebot.wpf
@@ -21,8 +22,10 @@ namespace zsemlebot.wpf
 
             Config.Instance.LoadConfig("config.json");
 
-            TwitchService = new TwitchService();
+            BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Config loaded. Twitch user: {Config.Instance.Twitch.User}; Hota user: {Config.Instance.Hota.User}; Hota client version: {Config.Instance.Hota.ClientVersion}");
+
             HotaService = new HotaService();
+            TwitchService = new TwitchService(HotaService);
             BotService = new BotService();
 
             DataContext = new MainViewModel(TwitchService, HotaService);

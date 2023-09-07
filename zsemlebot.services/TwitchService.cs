@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 using zsemlebot.core;
-using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.repository;
@@ -11,7 +9,7 @@ using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
-    public class TwitchService : IDisposable
+    public partial class TwitchService : IDisposable
     {
         #region Events
         private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -36,6 +34,8 @@ namespace zsemlebot.services
         }
         #endregion
 
+        private HotaService HotaService { get; }
+
         private IrcClient? Client { get; set; }
         private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
@@ -46,12 +46,13 @@ namespace zsemlebot.services
 
         private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
 
-        public TwitchService()
+        public TwitchService(HotaService hotaService)
         {
             ReconnectCount = 0;
 
             HandleMessagesThread = new Thread(HandleMessagesWorker);
             HandleMessagesThread.Start();
+            HotaService = hotaService;
         }
 
         public bool Connect()
@@ -156,9 +157,16 @@ namespace zsemlebot.services
             Client?.SendPrivMsg(channel, message);
         }
 
-        public void ReplyChatMessage(string parentMessageId, string channel, string message)
+        public void SendChatMessage(string? parentMessageId, string channel, string message)
         {
-            Client?.SendPrivMsg(parentMessageId, channel, message);
+            if (parentMessageId == null)
+            {
+                SendChatMessage(channel, message);
+            }
+            else
+            {
+                Client?.SendPrivMsg(parentMessageId, channel, message);
+            }
         }
 
         private TimeSpan GetWaitBetweenReconnects()
@@ -208,50 +216,6 @@ namespace zsemlebot.services
             }
         }
 
-        private void HandleCommand(string? sourceMessageId, string channel, TwitchUser sender, string command, string? parameters)
-        {
-            switch (command)
-            {
-                case Constants.Command_LinkMe:
-                    HandleLinkMeCommand(sourceMessageId, channel, sender, parameters);
-                    break;
-            }
-        }
-
-        private void HandleLinkMeCommand(string? sourceMessageId, string channel, TwitchUser sender, string? parameters)
-        {
-            if (parameters == null)
-            {
-                return;
-            }
-
-            var requests = BotRepository.ListUserLinkRequests(sender.DisplayName);
-            if (requests.Count == 0)
-            {
-                return;
-            }
-
-            var authCode = parameters;
-            var request = requests.FirstOrDefault(r => r.AuthCode == authCode);
-            if (request == null)
-            {
-                return;
-            }
-
-            BotRepository.AddTwitchHotaUserLink(sender.TwitchUserId, request.HotaUserId);
-            BotRepository.DeleteUserLinkRequest(request.HotaUserId, request.TwitchUserName);
-
-            var hotaUser = HotaRepository.GetUser(request.HotaUserId);
-            if (sourceMessageId == null)
-            {
-                SendChatMessage(channel, string.Format(Constants.Message_UserLinkTwitchMessage, sender.DisplayName, hotaUser?.DisplayName));
-            }
-            else
-            {
-                ReplyChatMessage(sourceMessageId, channel, string.Format(Constants.Message_UserLinkTwitchMessage, sender.DisplayName, hotaUser?.DisplayName));
-            }
-        }
-
         private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
         {
             messageReceived?.Invoke(sender, e);
@@ -260,7 +224,7 @@ namespace zsemlebot.services
         private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
         {
             statusChanged?.Invoke(sender, e);
-            
+
             if (e.NewStatus == TwitchStatus.Authenticated)
             {
                 var channel = $"#{Config.Instance.Twitch.AdminChannel}";

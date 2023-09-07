@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using zsemlebot.core.Extensions;
 using zsemlebot.core.Log;
 using zsemlebot.hota.Extensions;
 

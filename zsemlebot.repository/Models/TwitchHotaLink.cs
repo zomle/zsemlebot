@@ -3,6 +3,6 @@
     internal class TwitchHotaLink
     {
         public int TwitchUserId { get; set; }
-        public int HotaUserId { get; set; }
+        public uint HotaUserId { get; set; }
     }
 }
