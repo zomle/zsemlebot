@@ -1,13 +1,27 @@
 ﻿using System.Collections.Generic;
+using System.Data.SQLite;
+using zsemlebot.core;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
 {
-	public class OldBotRepository: RepositoryBase
+	public class OldBotRepository : RepositoryBase
 	{
+		public string DbFilePath { get; }
+
 		public OldBotRepository(string dbfilePath)
-			: base(dbfilePath)
 		{
+			DbFilePath = dbfilePath;
+		}
+
+		protected override SQLiteConnection GetConnection()
+		{
+			var connectionString = GetConnectionString(DbFilePath);
+
+			var connection = new SQLiteConnection(connectionString);
+			connection.Open();
+
+			return connection;
 		}
 
 		public IEnumerable<OldTwitchUserData> ListTwitchUsers()

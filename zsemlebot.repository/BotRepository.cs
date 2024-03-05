@@ -22,7 +22,6 @@ namespace zsemlebot.repository
         }
 
         private BotRepository()
-			: base(Config.Instance.Global.FullDatabaseFilePath)
 		{
             LinksByHotaUserId = new Dictionary<uint, List<TwitchHotaLink>>();
             LinksByTwitchUserId = new Dictionary<int, List<TwitchHotaLink>>();

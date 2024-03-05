@@ -19,7 +19,7 @@ namespace zsemlebot.services.Log
 
         public void LogEvent(BotLogSource source, string message)
         {
-            WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{source,-6}] - {message}");
+            WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{source,-6}] - {message}", true);
         }
     }
 }

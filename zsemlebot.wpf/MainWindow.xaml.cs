@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using zsemlebot.core;
+using zsemlebot.repository;
 using zsemlebot.services;
 using zsemlebot.services.Log;
 using zsemlebot.wpf.ViewModels;
@@ -36,6 +37,8 @@ namespace zsemlebot.wpf
             TwitchService.Dispose();
             HotaService.Dispose();
             BotService.Dispose();
+
+			ZsemlebotRepositoryBase.DisposeStatic();
         }
     }
 }

@@ -18,8 +18,7 @@ namespace zsemlebot.repository
             Instance = new TwitchRepository();
         }
 
-        private TwitchRepository() 
-			: base(Config.Instance.Global.FullDatabaseFilePath)
+        private TwitchRepository()
 		{
             TwitchUsersById = new Dictionary<int, TwitchUserData>();
             TwitchUsersByName = new Dictionary<string, TwitchUserData>();

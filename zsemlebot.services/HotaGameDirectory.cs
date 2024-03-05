@@ -22,6 +22,12 @@ namespace zsemlebot.services
             InProgressCount = 0;
         }
 
+		public HotaGame? GetGame(GameKey key)
+		{
+			ActiveGames.TryGetValue(key, out var result);
+			return result;
+		}
+
         public void AddGame(HotaGame game)
         {
             if (ActiveGames.ContainsKey(game.GameKey))
@@ -85,12 +91,6 @@ namespace zsemlebot.services
             }
 
             game.JoinedUsers.Add(user);
-
-            if (game.MaxPlayerCount == game.JoinedUsers.Count)
-            {
-                //NotFullCount--;
-                //NotStartedCount++;
-            }
 
             if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
             {

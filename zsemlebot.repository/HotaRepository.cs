@@ -20,7 +20,6 @@ namespace zsemlebot.repository
         }
 
         private HotaRepository() 
-			: base(Config.Instance.Global.FullDatabaseFilePath)
         {
             HotaUsersById = new Dictionary<uint, HotaUserData>();
             HotaUsersByName = new Dictionary<string, HotaUserData>();

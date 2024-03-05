@@ -1,6 +1,6 @@
 ﻿namespace zsemlebot.repository
 {
-    internal class DatabaseWorkItem
+    public class DatabaseWorkItem
     {
         public string Query { get; }
         public object? Parameters { get; }

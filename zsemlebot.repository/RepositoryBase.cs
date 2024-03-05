@@ -9,62 +9,17 @@ namespace zsemlebot.repository
 {
 	public abstract class RepositoryBase
 	{
-		private readonly Queue<DatabaseWorkItem> WorkItemQueue;
-		private bool Disposing;
-
-		private static readonly object padlock;
-
-		private string DatabaseFilePath { get; }
-
-		protected RepositoryBase(string databaseFilePath)
+		protected RepositoryBase()
 		{
-			WorkItemQueue = new Queue<DatabaseWorkItem>();
-
-			DatabaseFilePath = databaseFilePath;
-			Disposing = false;
-			StartUpdateThread();
 		}
 
-		static RepositoryBase()
-		{
-			padlock = new object();
-		}
-
-		public void Dispose()
-		{
-			Disposing = true;
-		}
+		protected abstract SQLiteConnection GetConnection();
 
 		protected int GetLastRowId()
 		{
 			return QueryFirst<int>("SELECT last_insert_rowid()");
 		}
 
-		private void StartUpdateThread()
-		{
-			new Thread(UpdateThreadWorker).Start();
-		}
-
-		private void UpdateThreadWorker()
-		{
-			while (!Disposing)
-			{
-				var workItems = new List<DatabaseWorkItem>();
-				lock (padlock)
-				{
-					while (WorkItemQueue.TryDequeue(out var tmp))
-					{
-						workItems.Add(tmp);
-					}
-				}
-
-				if (workItems.Count > 0)
-				{
-					ExecuteInTransaction(workItems);
-				}
-				Thread.Sleep(500);
-			}
-		}
 
 		protected void ExecuteNonQuery(string sql, object? param = null)
 		{
@@ -72,18 +27,7 @@ namespace zsemlebot.repository
 
 			connection.Execute(sql, param);
 		}
-		protected void EnqueueWorkItem(string sql, object? param = null)
-		{
-			if (Disposing)
-			{
-				throw new InvalidOperationException("Repository is already disposed.");
-			}
 
-			lock (padlock)
-			{
-				WorkItemQueue.Enqueue(new DatabaseWorkItem(sql, param));
-			}
-		}
 
 		protected IReadOnlyList<T> Query<T>(string sql, object? param = null)
 		{
@@ -135,34 +79,11 @@ namespace zsemlebot.repository
 			return result;
 		}
 
-		private void ExecuteInTransaction(IEnumerable<DatabaseWorkItem> workItems)
-		{
-			using var connection = GetConnection();
-			using var transaction = connection.BeginTransaction();
-
-			foreach (var workItem in workItems)
-			{
-				connection.Execute(workItem.Query, workItem.Parameters, transaction);
-			}
-
-			transaction.Commit();
-		}
-
-		private SQLiteConnection GetConnection()
-		{
-			var connectionString = GetConnectionString();
-
-			var connection = new SQLiteConnection(connectionString);
-			connection.Open();
-
-			return connection;
-		}
-
-		private string GetConnectionString()
+		protected static string GetConnectionString(string databaseFilePath)
 		{
 			var builder = new SQLiteConnectionStringBuilder
 			{
-				DataSource = DatabaseFilePath,
+				DataSource = databaseFilePath,
 				Version = 3,
 				Pooling = true
 			};

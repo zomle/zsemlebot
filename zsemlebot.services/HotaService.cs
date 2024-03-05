@@ -367,17 +367,30 @@ namespace zsemlebot.services
 
         private void HandleGameRoomUserJoined(GameRoomUserJoined evnt)
         {
-            var joinedUser = GetHotaUser(evnt.OtherUserId);
+			var game = GameDirectory.GetGame(evnt.GameKey);
+			if (game == null)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"ERROR. User joined to non-existent game. GameId: {evnt.GameKey.GameId.ToHexString()}, Host: {evnt.GameKey.HostUserId.ToHexString()}");
+				return;
+			}
+
+			var hostUser = GetHotaUser(evnt.GameKey.HostUserId);
+			var joinedUser = GetHotaUser(evnt.OtherUserId);
 
             GameDirectory.UserJoin(evnt.GameKey, joinedUser);
-        }
+			
+			BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game user joined. Host: {hostUser?.DisplayName}. Player: {joinedUser?.DisplayName}");
+		}
 
         private void HandleGameRoomUserLeft(GameRoomUserLeft evnt)
         {
-            var joinedUser = GetHotaUser(evnt.OtherUserId);
+			var hostUser = GetHotaUser(evnt.GameKey.HostUserId);
+			var leavingUser = GetHotaUser(evnt.OtherUserId);
 
-            GameDirectory.UserLeft(evnt.GameKey, joinedUser);
-        }
+            GameDirectory.UserLeft(evnt.GameKey, leavingUser);
+
+			BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game user left. Host: {hostUser?.DisplayName}. Player: {leavingUser?.DisplayName}");
+		}
 
         private void HandleGameStarted(GameStarted evnt)
         {
