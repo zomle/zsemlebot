@@ -18,6 +18,9 @@
             <TabItem Header="Hota">
                 <views:HotaView DataContext="{Binding HotaViewModel}" />
             </TabItem>
+            <TabItem Header="Maintenance">
+                <views:MaintenanceView DataContext="{Binding MaintenanceViewModel}" />
+            </TabItem>
         </TabControl>
     </Grid>
 </Window>

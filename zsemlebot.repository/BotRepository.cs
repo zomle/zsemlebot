@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
 {
-    public class BotRepository : RepositoryBase
-    {
+	public class BotRepository : ZsemlebotRepositoryBase
+	{
         public static readonly BotRepository Instance;
 
         private Dictionary<uint, List<TwitchHotaLink>> LinksByHotaUserId { get; set; }
@@ -20,7 +21,8 @@ namespace zsemlebot.repository
         }
 
         private BotRepository()
-        {
+			: base(Config.Instance.Global.FullDatabaseFilePath)
+		{
             LinksByHotaUserId = new Dictionary<uint, List<TwitchHotaLink>>();
             LinksByTwitchUserId = new Dictionary<int, List<TwitchHotaLink>>();
 

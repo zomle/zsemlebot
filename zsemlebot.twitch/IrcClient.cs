@@ -123,7 +123,6 @@ namespace zsemlebot.twitch
                 ReadThread = new Thread(ReadThreadWorker);
                 ReadThread.Start();
 
-
                 return true;
             }
             catch (Exception)

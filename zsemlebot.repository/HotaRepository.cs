@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
 {
-    public class HotaRepository : RepositoryBase
+    public class HotaRepository : ZsemlebotRepositoryBase
     {
         public static readonly HotaRepository Instance;
 
@@ -18,7 +19,8 @@ namespace zsemlebot.repository
             Instance = new HotaRepository();
         }
 
-        private HotaRepository()
+        private HotaRepository() 
+			: base(Config.Instance.Global.FullDatabaseFilePath)
         {
             HotaUsersById = new Dictionary<uint, HotaUserData>();
             HotaUsersByName = new Dictionary<string, HotaUserData>();
@@ -32,7 +34,19 @@ namespace zsemlebot.repository
             foreach (var model in models)
             {
                 HotaUsersById.Add(model.HotaUserId, model);
-                HotaUsersByName.Add(model.DisplayName.ToLower(), model);
+
+				if (HotaUsersByName.TryGetValue(model.DisplayName.ToLower(), out var existingUserData))
+				{
+					if (existingUserData.HotaUserId > model.HotaUserId)
+					{
+						continue;
+					}
+					else
+					{
+						HotaUsersByName.Remove(model.DisplayName.ToLower());
+					}
+				}
+				HotaUsersByName.Add(model.DisplayName.ToLower(), model);
             }
         }
 
@@ -66,7 +80,21 @@ namespace zsemlebot.repository
                 model.LastUpdatedAtUtc = DateTime.UtcNow;
 
                 HotaUsersById.Add(hotaUser.HotaUserId, model);
-                HotaUsersByName.Add(hotaUser.DisplayName.ToLower(), model);
+
+				if (HotaUsersByName.TryGetValue(hotaUser.DisplayName.ToLower(), out var existingUserData))
+				{
+					if (existingUserData.HotaUserId > model.HotaUserId)
+					{
+						//if the existing user id is larger than the new one, then ignore the new one, stick with the existing user data.
+						return;
+					}
+					else
+					{
+						HotaUsersByName.Remove(hotaUser.DisplayName.ToLower());
+					}
+				}
+
+				HotaUsersByName.Add(hotaUser.DisplayName.ToLower(), model);
 
                 EnqueueWorkItem(@$"INSERT INTO [{HotaUserDataTableName}] ([HotaUserId], [DisplayName], [Elo], [Rep], [LastUpdatedAtUtc]) 
                            VALUES (@id, @newName, @elo, @rep, datetime('now') );",

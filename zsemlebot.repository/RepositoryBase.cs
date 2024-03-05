@@ -2,262 +2,172 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
-using zsemlebot.core;
 
 namespace zsemlebot.repository
 {
-    public abstract class RepositoryBase
-    {
-        protected const string ChannelSettingsTableName = "ChannelSettings";
-        protected const string JoinedChannelsTableName = "JoinedChannels";
-        protected const string TwitchUserDataTableName = "TwitchUserData";
-        protected const string HotaUserDataTableName = "HotaUserData";
-        protected const string TwitchHotaUserLinkTableName = "TwitchHotaUserLink";
-        protected const string TwitchHotaUserLinkRequestTableName = "TwitchHotaUserLinkRequest";
+	public abstract class RepositoryBase
+	{
+		private readonly Queue<DatabaseWorkItem> WorkItemQueue;
+		private bool Disposing;
 
-        private static readonly Queue<DatabaseWorkItem> WorkItemQueue;
-        private static readonly object padlock;
-        private static bool Disposing;
+		private static readonly object padlock;
 
-        static RepositoryBase()
-        {
-            WorkItemQueue = new Queue<DatabaseWorkItem>();
-            padlock = new object();
-            Disposing = false;
+		private string DatabaseFilePath { get; }
 
-            BackupDatabaseFile();
-            CreateTables();
+		protected RepositoryBase(string databaseFilePath)
+		{
+			WorkItemQueue = new Queue<DatabaseWorkItem>();
 
-            CleanUpOldData();
+			DatabaseFilePath = databaseFilePath;
+			Disposing = false;
+			StartUpdateThread();
+		}
 
-            StartUpdateThread();
-        }
+		static RepositoryBase()
+		{
+			padlock = new object();
+		}
 
-        public static void Dispose()
-        {
-            Disposing = true;
-        }
+		public void Dispose()
+		{
+			Disposing = true;
+		}
 
-        private static void CreateTables()
-        {
-            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{ChannelSettingsTableName}]
-				(
-					[Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-					[ChannelName] TEXT NOT NULL,
-					[SettingName] TEXT NOT NULL,
-					[SettingValue] TEXT NOT NULL
-				)");
+		protected int GetLastRowId()
+		{
+			return QueryFirst<int>("SELECT last_insert_rowid()");
+		}
 
-            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{JoinedChannelsTableName}]
-				(
-					[TwitchUserId] INTEGER NOT NULL PRIMARY KEY
-				)");
+		private void StartUpdateThread()
+		{
+			new Thread(UpdateThreadWorker).Start();
+		}
 
-            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchUserDataTableName}]
-				(
-					[TwitchUserId] INTEGER NOT NULL PRIMARY KEY,
-					[DisplayName] TEXT NOT NULL COLLATE NOCASE
-				)");
+		private void UpdateThreadWorker()
+		{
+			while (!Disposing)
+			{
+				var workItems = new List<DatabaseWorkItem>();
+				lock (padlock)
+				{
+					while (WorkItemQueue.TryDequeue(out var tmp))
+					{
+						workItems.Add(tmp);
+					}
+				}
 
-            ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_TwitchUserData_TwitchUserId] ON [{TwitchUserDataTableName}] 
-                (
-					[TwitchUserId]
-				)");
+				if (workItems.Count > 0)
+				{
+					ExecuteInTransaction(workItems);
+				}
+				Thread.Sleep(500);
+			}
+		}
 
-            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{HotaUserDataTableName}]
-				(
-					[HotaUserId] INTEGER NOT NULL PRIMARY KEY,
-					[DisplayName] TEXT NOT NULL COLLATE NOCASE,
-                    [Elo] INTEGER,
-                    [Rep] INTEGER,
-                    [LastUpdatedAtUtc] TEXT NOT NULL
-				)");
+		protected void ExecuteNonQuery(string sql, object? param = null)
+		{
+			using var connection = GetConnection();
 
-            ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_HotaUserData_HotaUserId] ON [{HotaUserDataTableName}] 
-                (
-					[HotaUserId]
-				)");
+			connection.Execute(sql, param);
+		}
+		protected void EnqueueWorkItem(string sql, object? param = null)
+		{
+			if (Disposing)
+			{
+				throw new InvalidOperationException("Repository is already disposed.");
+			}
 
-            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchHotaUserLinkTableName}]
-				(
-                    [TwitchUserId] INTEGER NOT NULL,
-					[HotaUserId] INTEGER NOT NULL,
-                    [CreatedAtUtc] TEXT NOT NULL
-				)");
+			lock (padlock)
+			{
+				WorkItemQueue.Enqueue(new DatabaseWorkItem(sql, param));
+			}
+		}
 
-            ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{TwitchHotaUserLinkRequestTableName}]
-				(
-                    [TwitchUserName] TEXT NOT NULL COLLATE NOCASE,
-					[HotaUserId] INTEGER NOT NULL,
-                    [AuthCode] TEXT NOT NULL,
-                    [ValidUntilUtc] TEXT NOT NULL
-				)");
-        }
+		protected IReadOnlyList<T> Query<T>(string sql, object? param = null)
+		{
+			using var connection = GetConnection();
 
-        private static void CleanUpOldData() 
-        {
-            ExecuteNonQuery(@$"DELETE FROM [{TwitchHotaUserLinkRequestTableName}] WHERE [ValidUntilUtc] < datetime('now');");
-        }
+			return connection.Query<T>(sql, param).ToList();
+		}
 
-        protected static int GetLastRowId()
-        {
-            return QueryFirst<int>("SELECT last_insert_rowid()");
-        }
+		protected IReadOnlyList<TReturn> Query<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null)
+		{
+			using var connection = GetConnection();
+			return connection.Query(sql, map, splitOn: splitOn, param: param).ToList();
+		}
 
-        private static void StartUpdateThread()
-        {
-            new Thread(UpdateThreadWorker).Start();
-        }
+		protected T QueryFirst<T>(string sql, object? param = null)
+		{
+			using var connection = GetConnection();
 
-        private static void UpdateThreadWorker()
-        {
-            while (!Disposing)
-            {
-                var workItems = new List<DatabaseWorkItem>();
-                lock (padlock)
-                {
-                    while (WorkItemQueue.TryDequeue(out var tmp))
-                    {
-                        workItems.Add(tmp);
-                    }
-                }
+			return connection.QueryFirst<T>(sql, param);
+		}
 
-                if (workItems.Count > 0)
-                {
-                    ExecuteInTransaction(workItems);
-                }
-                Thread.Sleep(500);
-            }
-        }
+		protected T QueryFirstOrDefault<T>(string sql, object? param = null)
+		{
+			using var connection = GetConnection();
 
-        protected static void ExecuteNonQuery(string sql, object? param = null)
-        {
-            using var connection = GetConnection();
+			return connection.QueryFirstOrDefault<T>(sql, param);
+		}
 
-            connection.Execute(sql, param);
-        }
-        protected static void EnqueueWorkItem(string sql, object? param = null)
-        {
-            if (Disposing)
-            {
-                throw new InvalidOperationException("Repository is already disposed.");
-            }
+		protected TReturn? QueryFirstOrDefault<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null)
+		{
+			using var connection = GetConnection();
 
-            lock (padlock)
-            {
-                WorkItemQueue.Enqueue(new DatabaseWorkItem(sql, param));
-            }
-        }
+			return connection.Query(sql, map, splitOn: splitOn, param: param).FirstOrDefault();
+		}
 
-        protected static IReadOnlyList<T> Query<T>(string sql, object? param = null)
-        {
-            using var connection = GetConnection();
+		protected bool QueryHasResult(string sql, object? param = null)
+		{
+			using var connection = GetConnection();
 
-            return connection.Query<T>(sql, param).ToList();
-        }
+			var result = connection.ExecuteScalar(sql, param);
 
-        protected static IReadOnlyList<TReturn> Query<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null)
-        {
-            using var connection = GetConnection();
-            return connection.Query(sql, map, splitOn: splitOn, param: param).ToList();
-        }
+			return result != null;
+		}
 
-        protected static T QueryFirst<T>(string sql, object? param = null)
-        {
-            using var connection = GetConnection();
+		protected int Execute(string sql, object? param = null)
+		{
+			using var connection = GetConnection();
+			var result = connection.Execute(sql, param);
+			return result;
+		}
 
-            return connection.QueryFirst<T>(sql, param);
-        }
+		private void ExecuteInTransaction(IEnumerable<DatabaseWorkItem> workItems)
+		{
+			using var connection = GetConnection();
+			using var transaction = connection.BeginTransaction();
 
-        protected static T QueryFirstOrDefault<T>(string sql, object? param = null)
-        {
-            using var connection = GetConnection();
+			foreach (var workItem in workItems)
+			{
+				connection.Execute(workItem.Query, workItem.Parameters, transaction);
+			}
 
-            return connection.QueryFirstOrDefault<T>(sql, param);
-        }
+			transaction.Commit();
+		}
 
-        protected static TReturn? QueryFirstOrDefault<TFirst, TSecond, TReturn>(string sql, Func<TFirst, TSecond, TReturn> map, string splitOn, object? param = null)
-        {
-            using var connection = GetConnection();
+		private SQLiteConnection GetConnection()
+		{
+			var connectionString = GetConnectionString();
 
-            return connection.Query(sql, map, splitOn: splitOn, param: param).FirstOrDefault();
-        }
+			var connection = new SQLiteConnection(connectionString);
+			connection.Open();
 
-        protected static bool QueryHasResult(string sql, object? param = null)
-        {
-            using var connection = GetConnection();
+			return connection;
+		}
 
-            var result = connection.ExecuteScalar(sql, param);
+		private string GetConnectionString()
+		{
+			var builder = new SQLiteConnectionStringBuilder
+			{
+				DataSource = DatabaseFilePath,
+				Version = 3,
+				Pooling = true
+			};
 
-            return result != null;
-        }
-
-        protected static int Execute(string sql, object? param = null)
-        {
-            using var connection = GetConnection();
-            var result = connection.Execute(sql, param);
-            return result;
-        }
-
-        private static void ExecuteInTransaction(IEnumerable<DatabaseWorkItem> workItems)
-        {
-            using var connection = GetConnection();
-            using var transaction = connection.BeginTransaction();
-
-            foreach (var workItem in workItems)
-            {
-                connection.Execute(workItem.Query, workItem.Parameters, transaction);
-            }
-
-            transaction.Commit();
-        }
-
-        private static SQLiteConnection GetConnection()
-        {
-            var connectionString = GetConnectionString();
-
-            var connection = new SQLiteConnection(connectionString);
-            connection.Open();
-
-            return connection;
-        }
-
-        private static void BackupDatabaseFile()
-        {
-            try
-            {
-                var dbFilename = Config.Instance.Global.FullDatabaseFilePath;
-
-                var dbBackupName = $"{Config.Instance.Global.DatabaseFileName}_{DateTime.Now:yyyyMMdd_HHmmss}";
-                var dbBackupFilename = Path.Combine(Config.Instance.Global.FullDbBackupDirectory, dbBackupName);
-
-                if (File.Exists(dbFilename))
-                {
-                    File.Copy(dbFilename, dbBackupFilename);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine("Failed to create backup: " + e.Message);
-            }
-        }
-
-        private static string GetConnectionString()
-        {
-            var dbFilename = Config.Instance.Global.FullDatabaseFilePath;
-
-            var builder = new SQLiteConnectionStringBuilder
-            {
-                DataSource = dbFilename,
-                Version = 3,
-                Pooling = true
-            };
-
-            return builder.ToString();
-        }
-    }
+			return builder.ToString();
+		}
+	}
 }

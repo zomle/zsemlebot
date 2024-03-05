@@ -204,10 +204,10 @@ namespace zsemlebot.services
                 Client.GetUserElo(hotaUser.HotaUserId);
             }
 
-            var cntr = 20;
             var remainingUsers = new List<HotaUser>(hotaUsers);
             var updatedUsers = new List<HotaUser>();
-            while (cntr > 0)
+			var waitUntil = DateTime.UtcNow + Constants.RequestEloTimeOut;
+			while (DateTime.UtcNow < waitUntil)
             {
                 for (int i = 0; i < remainingUsers.Count;)
                 {
@@ -227,7 +227,7 @@ namespace zsemlebot.services
                     break;
                 }
 
-                cntr--;
+				Thread.Sleep(150);
             }
 
             return new UserUpdateResponse(updatedUsers, remainingUsers);
@@ -246,11 +246,11 @@ namespace zsemlebot.services
                 Client.GetUserRep(hotaUser.HotaUserId);
             }
 
-            var cntr = 20;
             var remainingUsers = new List<HotaUser>(hotaUsers);
             var updatedUsers = new List<HotaUser>();
-            while (cntr > 0)
-            {
+			var waitUntil = DateTime.UtcNow + Constants.RequestEloTimeOut;
+			while (DateTime.UtcNow < waitUntil)
+			{
                 for (int i = 0; i < remainingUsers.Count;)
                 {
                     var user = remainingUsers[i];
@@ -269,8 +269,8 @@ namespace zsemlebot.services
                     break;
                 }
 
-                cntr--;
-            }
+				Thread.Sleep(150);
+			}
 
             return new UserUpdateResponse(updatedUsers, remainingUsers);
         }

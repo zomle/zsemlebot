@@ -5,6 +5,24 @@ namespace zsemlebot.services
 {
     public class BotService : IDisposable
     {
+		public void LoadUserData(string sourceDatabaseFilePath)
+		{
+			var oldRepository = new OldBotRepository(sourceDatabaseFilePath);
+			
+			var oldTwitchUsers = oldRepository.ListTwitchUsers();
+			foreach (var user in oldTwitchUsers)
+			{
+				TwitchRepository.Instance.UpdateTwitchUserName(user.UserId, user.DisplayName);
+			}
+
+			var oldHotaUsers = oldRepository.ListHotaUsers();
+			foreach(var user in oldHotaUsers)
+			{
+				var newUser = new core.Domain.HotaUser(user.UserId, user.UserName, user.UserElo, 0, null, user.LastUpdatedAtUtc);
+				HotaRepository.Instance.UpdateHotaUser(newUser);
+			}			
+		}
+
 
         #region IDisposable implementation
         private bool disposedValue;
@@ -14,7 +32,7 @@ namespace zsemlebot.services
             {
                 if (disposing)
                 {
-                    RepositoryBase.Dispose();
+					//
                 }
 
                 disposedValue = true;

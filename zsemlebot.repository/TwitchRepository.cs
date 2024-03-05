@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.repository
 {
-    public class TwitchRepository : RepositoryBase
-    {
+    public class TwitchRepository : ZsemlebotRepositoryBase
+	{
         public static readonly TwitchRepository Instance;
 
         private Dictionary<int, TwitchUserData> TwitchUsersById { get; set; }
@@ -17,8 +18,9 @@ namespace zsemlebot.repository
             Instance = new TwitchRepository();
         }
 
-        private TwitchRepository()
-        {
+        private TwitchRepository() 
+			: base(Config.Instance.Global.FullDatabaseFilePath)
+		{
             TwitchUsersById = new Dictionary<int, TwitchUserData>();
             TwitchUsersByName = new Dictionary<string, TwitchUserData>();
 
@@ -31,7 +33,19 @@ namespace zsemlebot.repository
             foreach (var model in models)
             {
                 TwitchUsersById.Add(model.TwitchUserId, model);
-                TwitchUsersByName.Add(model.DisplayName.ToLower(), model);
+
+				if (TwitchUsersByName.TryGetValue(model.DisplayName.ToLower(), out var existingUserData))
+				{
+					if (existingUserData.TwitchUserId > model.TwitchUserId)
+					{
+						continue;
+					}
+					else
+					{
+						TwitchUsersByName.Remove(model.DisplayName.ToLower());
+					}
+				}
+				TwitchUsersByName.Add(model.DisplayName.ToLower(), model);
             }
         }
 
@@ -73,6 +87,20 @@ namespace zsemlebot.repository
             {
                 var newUser = new TwitchUserData { TwitchUserId = id, DisplayName = newName };
                 TwitchUsersById.Add(id, newUser);
+
+				if (TwitchUsersByName.TryGetValue(newName.ToLower(), out var existingUserData)) 
+				{
+					if (existingUserData.TwitchUserId > newUser.TwitchUserId)
+					{
+						//if the existing user id is larger than the new one, then ignore the new one, stick with the existing user data.
+						return;
+					}
+					else
+					{
+						TwitchUsersByName.Remove(newName.ToLower());
+					}
+				}
+
                 TwitchUsersByName.Add(newName.ToLower(), newUser);
 
                 EnqueueWorkItem(@$"INSERT INTO [{TwitchUserDataTableName}] ([TwitchUserId], [DisplayName]) 

@@ -28,7 +28,7 @@ namespace zsemlebot.wpf
             TwitchService = new TwitchService(HotaService);
             BotService = new BotService();
 
-            DataContext = new MainViewModel(TwitchService, HotaService);
+            DataContext = new MainViewModel(TwitchService, HotaService, BotService);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

@@ -1,9 +1,10 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using zsemlebot.core;
 using zsemlebot.core.Domain;
+using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
@@ -13,21 +14,102 @@ namespace zsemlebot.services
         {
             switch (command)
             {
-                case Constants.Command_LinkMe:
+				case Constants.Command_Elo:
+					HandleEloCommand(sourceMessageId, channel, sender, parameters);
+					break;
+
+				case Constants.Command_Link:
+					HandleLinkCommand(sourceMessageId, channel, sender, parameters);
+					break;
+
+				case Constants.Command_LinkMe:
                     HandleLinkMeCommand(sourceMessageId, channel, sender, parameters);
                     break;
 
-                case Constants.Command_Elo:
-                    HandleEloCommand(sourceMessageId, channel, sender, parameters);
-                    break;
-
-                case Constants.Command_Rep:
+				case Constants.Command_Rep:
                     HandleRepCommand(sourceMessageId, channel, sender, parameters);
                     break;
             }
         }
 
-        private void HandleLinkMeCommand(string? sourceMessageId, string channel, TwitchUser sender, string? parameters)
+		private void HandleLinkCommand(string? sourceMessageId, string channel, TwitchUser sender, string? parameters)
+		{
+			if (parameters == null)
+			{
+				return;
+			}
+
+			if (sender.TwitchUserId != Config.Instance.Twitch.AdminUserId)
+			{
+				return;
+			}
+
+			if (channel[1..] != Config.Instance.Twitch.AdminChannel)
+			{
+				return;
+			}
+
+			var tokens = parameters.Split(new[] { ' ' }, 3);
+			if (tokens.Length != 3
+				|| (tokens[0] != "add" && tokens[0] != "del")
+				|| !tokens[1].StartsWith(Constants.TwitchParameterPrefix)
+				|| !tokens[2].StartsWith(Constants.HotaParameterPrefix))
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.UserLinkInvalidMessage());
+				return;
+			}
+
+			string op = tokens[0];
+			string twitchName = tokens[1][Constants.TwitchParameterPrefix.Length..];
+			string hotaName = tokens[2][Constants.HotaParameterPrefix.Length..];
+
+			var twitchUser = TwitchRepository.GetUser(twitchName);
+			if (twitchUser == null)
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.TwitchUserNotFound(twitchName));
+				return;
+			}
+
+			var hotaUser = HotaRepository.GetUser(hotaName);
+			if (hotaUser == null)
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.HotaUserNotFound(hotaName));
+				return;
+			}
+
+			var existingLinks = BotRepository.GetLinksForTwitchName(twitchName);
+			if (existingLinks == null)
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.InvalidOperation("BotRepository.GetLinksForTwitchName() returned null in HandleLinkCommand()"));
+				return;
+			}
+
+			if (op == "add")
+			{
+				if (existingLinks.LinkedHotaUsers.Any(hu => string.Equals(hu.DisplayName, hotaName, StringComparison.InvariantCultureIgnoreCase)))
+				{
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.UserLinkAlreadyLinked(twitchName, hotaName));
+					return;
+				}
+
+				BotRepository.AddTwitchHotaUserLink(twitchUser.TwitchUserId, hotaUser.HotaUserId);
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.UserLinkTwitchMessage(twitchName, hotaName));
+			}
+			else if (op == "del")
+			{
+				if (existingLinks.LinkedHotaUsers.Any(hu => string.Equals(hu.DisplayName, hotaName, StringComparison.InvariantCultureIgnoreCase)))
+				{
+					BotRepository.DelTwitchHotaUserLink(twitchUser.TwitchUserId, hotaUser.HotaUserId);
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.UserLinkDeleted(twitchName, hotaName));
+				}
+				else
+				{
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.UserLinkDoesntExist(twitchName, hotaName));
+				}
+			}
+		}
+
+		private void HandleLinkMeCommand(string? sourceMessageId, string channel, TwitchUser sender, string? parameters)
         {
             if (parameters == null)
             {
