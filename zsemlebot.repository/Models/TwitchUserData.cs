@@ -2,7 +2,7 @@
 
 namespace zsemlebot.repository.Models
 {
-    internal class TwitchUserData
+    public class TwitchUserData
     {
         public int TwitchUserId { get; set; }
 

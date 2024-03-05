@@ -14,6 +14,7 @@ namespace zsemlebot.repository
         private Dictionary<uint, List<TwitchHotaLink>> LinksByHotaUserId { get; set; }
         private Dictionary<int, List<TwitchHotaLink>> LinksByTwitchUserId { get; set; }
         private List<TwitchHotaLinkRequestData> UserLinkRequests { get; set; }
+		private List<JoinedChannel> JoinedChannels { get; set; }
 
         static BotRepository()
         {
@@ -27,10 +28,32 @@ namespace zsemlebot.repository
             LinksByTwitchUserId = new Dictionary<int, List<TwitchHotaLink>>();
 
             UserLinkRequests = new List<TwitchHotaLinkRequestData>();
+			JoinedChannels = new List<JoinedChannel>();
 
-            LoadTwitchHotaUserLinks();
+			LoadTwitchHotaUserLinks();
             LoadTwitchHotaUserLinkRequests();
+			LoadJoinedChannels();
         }
+
+		public void AddJoinedChannel(int twitchUserId)
+		{
+			if (JoinedChannels.Any(jc => jc.TwitchUserId == twitchUserId))
+			{
+				return;
+			}
+			
+			JoinedChannels.Add(new JoinedChannel { TwitchUserId = twitchUserId });
+			EnqueueWorkItem(@$"INSERT INTO [{JoinedChannelsTableName}] ([TwitchUserId]) 
+                           VALUES (@twitchUserId);", new { twitchUserId });
+		}
+
+		public IEnumerable<TwitchUserData> ListJoinedChannels()
+		{
+			var userData = Query<TwitchUserData>($"SELECT tu.[TwitchUserId], tu.[DisplayName] " +
+												$"FROM [{JoinedChannelsTableName}] jc" +
+												$"JOIN [{TwitchUserDataTableName}] tu on jc.[TwitchUserId] = tu.[TwitchUserId];");
+			return userData;
+		}
 
         public void CreateUserLinkRequest(uint hotaUserId, string twitchUserName, string authCode, int validityLengthInMins)
         {
@@ -156,7 +179,16 @@ namespace zsemlebot.repository
             }
         }
 
-        private void LoadTwitchHotaUserLinks()
+		private void LoadJoinedChannels()
+		{
+			var models = Query<JoinedChannel>($"SELECT [TwitchUserId] FROM [{JoinedChannelsTableName}];");
+			foreach (var model in models)
+			{
+				JoinedChannels.Add(model);
+			}
+		}
+
+		private void LoadTwitchHotaUserLinks()
         {
             var models = Query<TwitchHotaLink>($"SELECT [TwitchUserId], [HotaUserId] FROM [{TwitchHotaUserLinkTableName}];");
             foreach (var model in models)

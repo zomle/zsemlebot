@@ -21,5 +21,17 @@ namespace zsemlebot.repository
 			var users = Query<OldHotaUserData>($"SELECT [UserId], [UserName], [UserElo], [LastUpdatedAtUtc] FROM [HotaUserData];");
 			return users;
 		}
+
+		public IEnumerable<OldJoinedChannel> ListJoinedChannels()
+		{
+			var channels = Query<OldJoinedChannel>($"SELECT [Name] FROM [JoinedChannels];");
+			return channels;
+		}
+
+		public IEnumerable<OldUserLink> ListUserLinks()
+		{
+			var links = Query<OldUserLink>($"SELECT [TwitchUserId], [HotaUserId] FROM [TwitchUserHotaUserLink];");
+			return links;
+		}
 	}
 }

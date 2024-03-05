@@ -34,7 +34,7 @@ namespace zsemlebot.wpf.ViewModels
 			MigrateUsersCommand = new CommandHandler(
 				() =>
 				{
-					BotService.LoadUserData(Zsemlebot1DatabasePath);
+					BotService.MigrateOldData(Zsemlebot1DatabasePath);
 				});
 		}
 	}
