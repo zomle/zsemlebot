@@ -72,7 +72,7 @@ namespace zsemlebot.services
         private bool PauseUpdateNotifications { get; set; }
 
         private static HotaRepository HotaRepository { get { return HotaRepository.Instance; } }
-        private static BotRepository BotRepository { get { return BotRepository.Instance; } }
+		private static BotRepository BotRepository { get { return BotRepository.Instance; } }
 
         private static readonly int[] WaitTimesBetweenReconnect = { 2, 5, 10, 15, 30 };
 
@@ -92,6 +92,25 @@ namespace zsemlebot.services
 
             Client.ReplayBinaryFile(@"c:\projects\traffic_20230805_023554.bin");
         }
+
+		public IReadOnlyList<QueriedHotaGame> FindGameForUsers(IEnumerable<HotaUser> users)
+		{
+			var result = new List<QueriedHotaGame>();
+
+			foreach (var user in users)
+			{
+				var game = GameDirectory.FindGame(user);
+				if (game != null && !result.Any(g => g.Game.GameKey.Equals(game.GameKey)))
+				{
+					result.Add(new QueriedHotaGame
+					{
+						UserOfInterest = user,
+						Game = game
+					});
+				}
+			}
+			return result;
+		}
 
         public bool Connect()
         {
@@ -213,7 +232,7 @@ namespace zsemlebot.services
                 {
                     var user = remainingUsers[i];
                     var tmpUser = HotaRepository.GetUser(user.HotaUserId);
-                    if (tmpUser.UpdatedAtUtc > requestTime)
+                    if (tmpUser?.UpdatedAtUtc > requestTime)
                     {
                         updatedUsers.Add(tmpUser);
                         remainingUsers.RemoveAt(i);
@@ -255,7 +274,7 @@ namespace zsemlebot.services
                 {
                     var user = remainingUsers[i];
                     var tmpUser = HotaRepository.GetUser(user.HotaUserId);
-                    if (tmpUser.UpdatedAtUtc > requestTime)
+                    if (tmpUser?.UpdatedAtUtc > requestTime)
                     {
                         updatedUsers.Add(tmpUser);
                         remainingUsers.RemoveAt(i);

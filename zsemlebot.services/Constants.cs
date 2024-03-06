@@ -4,10 +4,17 @@ namespace zsemlebot.services
 {
     internal static class Constants
     {
-        /// <summary>
-        /// Usage: !linkme <twitchname>
-        /// </summary>
-        public const string Command_LinkMe = "!linkme";
+		/// <summary>
+		/// Usage 1: !game 
+		/// Usage 2: !game edit [template] <hotauser1> [color] [faction] [trade] <hotauser2> [color] [faction] [trade]
+		/// Usage 3: !game <twitch/hota user>
+		/// </summary>
+		public const string Command_Game = "!game";
+
+		/// <summary>
+		/// Usage: !linkme <twitchname>
+		/// </summary>
+		public const string Command_LinkMe = "!linkme";
 
 		/// <summary>
 		/// Usage: !link <add|del> twitch=<twitchname> hota=<hotaname>

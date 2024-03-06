@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.services.Log;
@@ -21,6 +22,19 @@ namespace zsemlebot.services
             NotStartedCount = 0;
             InProgressCount = 0;
         }
+
+        public HotaGame? FindGame(HotaUser user)
+		{
+			foreach (var game in ActiveGames.Values)
+			{
+				if (game.JoinedUsers.Any(ju => ju.HotaUserId == user.HotaUserId))
+				{
+					return game;
+				}
+			}
+
+			return null;
+		}
 
 		public HotaGame? GetGame(GameKey key)
 		{
@@ -106,12 +120,6 @@ namespace zsemlebot.services
             }
 
             game.JoinedUsers.RemoveAll(ju => ju.HotaUserId == user.HotaUserId);
-
-            //if (game.MaxPlayerCount == game.JoinedUsers.Count + 1)
-            //{
-            //    NotFullCount++;
-            //    NotStartedCount--;
-            //}
 
             if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
             {
