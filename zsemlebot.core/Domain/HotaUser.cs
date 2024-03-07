@@ -3,7 +3,7 @@ using zsemlebot.core.Enums;
 
 namespace zsemlebot.core.Domain
 {
-    public class HotaUser
+	public class HotaUser
     {
         public uint HotaUserId { get; set; }
         public HotaUserStatus? Status { get; set; }

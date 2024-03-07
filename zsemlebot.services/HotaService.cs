@@ -210,7 +210,16 @@ namespace zsemlebot.services
             Client?.SendMessage(targetHotaUserId, message);
         }
 
-        public UserUpdateResponse RequestUserEloAndWait(IReadOnlyList<HotaUser> hotaUsers)
+		public void UpdadateGameInfo(HotaGame game, string newTemplateName)
+		{
+			GameDirectory.UpdateTemplate(game.GameKey, newTemplateName);
+		}
+		public void UpdatePlayerInfo(HotaGame game, HotaGamePlayer player, string? color, string? faction, int? tradeOutcome)
+		{
+			GameDirectory.UpdatePlayerInfo(game.GameKey, player, color, faction, tradeOutcome);
+		}
+
+		public UserUpdateResponse RequestUserEloAndWait(IReadOnlyList<HotaUser> hotaUsers)
         {
             if (Client?.Status != HotaClientStatus.Authenticated)
             {
@@ -369,7 +378,7 @@ namespace zsemlebot.services
             foreach (var playerId in evnt.PlayerIds)
             {
                 var player = GetHotaUser(playerId);
-                newGame.JoinedUsers.Add(player);
+                newGame.JoinedPlayers.Add(new HotaGamePlayer(player));
 
                 if (player.Status == HotaUserStatus.InGame)
                 {
@@ -381,7 +390,7 @@ namespace zsemlebot.services
 
             GameDirectory.AddGame(newGame);
 
-            BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game created ({newGame.Status}). Host: {hostUser.DisplayName}. Players: {string.Join(", ", newGame.JoinedUsers.Select(ju => ju.DisplayName))}");
+            BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game created ({newGame.Status}). Host: {hostUser.DisplayName}. Players: {string.Join(", ", newGame.JoinedPlayers.Select(ju => ju.PlayerName))}");
         }
 
         private void HandleGameRoomUserJoined(GameRoomUserJoined evnt)
@@ -415,7 +424,7 @@ namespace zsemlebot.services
         {
             var game = GameDirectory.GameStarted(evnt.GameKey);
 
-            BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game started. Players: {string.Join(", ", game.JoinedUsers.Select(ju => ju.DisplayName))}");
+            BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game started. Players: {string.Join(", ", game.JoinedPlayers.Select(ju => ju.PlayerName))}");
         }
 
         private void HandleGameEnded(GameEnded evnt)
@@ -424,7 +433,7 @@ namespace zsemlebot.services
 
             InvokeGameListChangedEvent();
 
-            BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game ended. Players: {string.Join(", ", game.JoinedUsers.Select(ju => ju.DisplayName))}");
+            BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game ended. Players: {string.Join(", ", game.JoinedPlayers.Select(ju => ju.PlayerName))}");
         }
 
         private void HandleUserJoinedLobby(UserJoinedLobby evnt)
@@ -647,6 +656,7 @@ namespace zsemlebot.services
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
-        #endregion
-    }
+
+		#endregion
+	}
 }

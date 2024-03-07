@@ -195,7 +195,7 @@ namespace zsemlebot.services
             var displayName = rawMessage.SourceUserName;
             var userId = rawMessage.SourceUserId;
 
-            if (displayName != null && userId != null)
+			if (displayName != null && userId != null)
             {
                 TwitchRepository.UpdateTwitchUserName(userId.Value, displayName);
             }
@@ -212,7 +212,23 @@ namespace zsemlebot.services
                 var cmdTokens = message.Split(' ', 2);
                 var messageId = rawMessage.GetTagValue("id");
 
-                HandleCommand(messageId, channel, twitchUser, cmdTokens[0], cmdTokens.Length > 1 ? cmdTokens[1] : null);
+				var sender = new MessageSource(twitchUser);
+				foreach (var tag in rawMessage.Tags.Values)
+				{
+					switch (tag.Key)
+					{
+						case "badges":
+							sender.IsVip = tag.Value.Contains("vip");
+							sender.IsBroadcaster = tag.Value.Contains("broadcaster");
+							break;
+
+						case "mod":
+							sender.IsModerator = tag.Value == "1";
+							break;
+					}
+				}
+
+				HandleCommand(messageId, channel, sender, cmdTokens[0], cmdTokens.Length > 1 ? cmdTokens[1] : null);
             }
         }
 

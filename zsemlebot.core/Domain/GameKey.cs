@@ -1,4 +1,6 @@
-﻿namespace zsemlebot.core.Domain
+﻿using zsemlebot.core.Extensions;
+
+namespace zsemlebot.core.Domain
 {
     public record GameKey
     {
@@ -10,5 +12,10 @@
             HostUserId = hostUserId;
             GameId = gameId;
         }
-    }
+
+		public override string ToString()
+		{
+			return $"{nameof(GameKey)} {{ {nameof(HostUserId)} = {HostUserId.ToHexString()}, {nameof(GameId)} = {GameId.ToHexString()} }}";
+		}
+	}
 }

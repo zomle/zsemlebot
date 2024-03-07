@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using zsemlebot.core.Enums;
 
 namespace zsemlebot.core.Domain
@@ -15,17 +16,23 @@ namespace zsemlebot.core.Domain
 		public bool IsLoaded { get; set; }
 		public bool IsRanked { get; set; }
 		public int MaxPlayerCount { get; set; }
-		public List<HotaUser> JoinedUsers { get; set; }
+		public List<HotaGamePlayer> JoinedPlayers { get; set; }
+		public string Template { get; set; }
 
 		public bool IsStarted { get { return Status == HotaGameStatus.InProgress; } }
 
 		public HotaGame(GameKey gameKey, HotaUser hostUser, string description)
 		{
-			JoinedUsers = new List<HotaUser>();
+			JoinedPlayers = new List<HotaGamePlayer>();
 
 			GameKey = gameKey;
 			HostUser = hostUser;
 			Description = description;
+		}
+
+		public HotaGamePlayer? GetPlayer(HotaUser hotaUser)
+		{
+			return JoinedPlayers.FirstOrDefault(jp => jp.HotaUserId == hotaUser.HotaUserId);
 		}
 	}
 }

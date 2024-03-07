@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
@@ -27,7 +28,7 @@ namespace zsemlebot.services
 		{
 			foreach (var game in ActiveGames.Values)
 			{
-				if (game.JoinedUsers.Any(ju => ju.HotaUserId == user.HotaUserId))
+				if (game.JoinedPlayers.Any(ju => ju.HotaUserId == user.HotaUserId))
 				{
 					return game;
 				}
@@ -104,7 +105,7 @@ namespace zsemlebot.services
                 return;
             }
 
-            game.JoinedUsers.Add(user);
+            game.JoinedPlayers.Add(new HotaGamePlayer(user));
 
             if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
             {
@@ -119,12 +120,40 @@ namespace zsemlebot.services
                 return;
             }
 
-            game.JoinedUsers.RemoveAll(ju => ju.HotaUserId == user.HotaUserId);
+            game.JoinedPlayers.RemoveAll(ju => ju.HotaUserId == user.HotaUserId);
 
             if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
             {
                 BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
             }
         }
-    }
+
+		public void UpdateTemplate(GameKey gameKey, string newTemplateName)
+		{
+			var game = GetGame(gameKey);
+			if (game == null)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Couldn't find game by key ({gameKey}) in {nameof(HotaGameDirectory)}.{nameof(UpdateTemplate)}().");
+				return;
+			}
+
+			game.Template = newTemplateName ?? game.Template;
+			BotLogger.Instance.LogEvent(BotLogSource.User, $"Template updated for game ({gameKey}). New template: {newTemplateName}");
+		}
+
+		public void UpdatePlayerInfo(GameKey gameKey, HotaGamePlayer player, string? color, string? faction, int? trade)
+		{
+			var game = GetGame(gameKey);
+			if (game == null)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Couldn't find game by key ({gameKey}) in {nameof(HotaGameDirectory)}.{nameof(UpdatePlayerInfo)}().");
+				return;
+			}
+
+			player.Faction = faction ?? player.Faction;
+			player.Color = color ?? player.Color;
+			player.Trade = trade ?? player.Trade;
+			BotLogger.Instance.LogEvent(BotLogSource.User, $"Player info updated for game ({gameKey}). Faction: {faction}; color: {color}; trade: {trade}");
+		}
+	}
 }

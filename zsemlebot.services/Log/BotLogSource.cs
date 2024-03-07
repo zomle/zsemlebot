@@ -5,5 +5,6 @@
         Intrnl,
         Twitch,
         Hota,
+		User,
     }
 }

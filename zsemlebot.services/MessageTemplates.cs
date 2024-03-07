@@ -25,6 +25,11 @@ namespace zsemlebot.services
 			return $"{user} is not in a game at the moment.";
 		}
 
+		public static string MultipleGamesFound(string user)
+		{
+			return $"There seems to be multiple active games for {user}.";
+		}
+
 		public static string UserLinkInvalidMessage()
 		{
 			return $"!link was incorrectly formatted. Usage: !link <add|del> {Constants.TwitchParameterPrefix}<twitch name> {Constants.HotaParameterPrefix}<hota name>";
@@ -129,14 +134,14 @@ namespace zsemlebot.services
 			return $"Invalid operation: {message}";
 		}
 
-		public static string GameDescription(QueriedHotaGame game)
+		public static string GameDescription(QueriedHotaGame gameInfo)
 		{
-			var mainUserDesc = HotaUserDescription(game.UserOfInterest);
+			var mainUserDesc = HotaUserDescription(gameInfo.Game, gameInfo.UserOfInterest);
 
 			var sb = new StringBuilder();
-			foreach (var user in game.Game.JoinedUsers)
+			foreach (var player in gameInfo.Game.JoinedPlayers)
 			{
-				if (user.HotaUserId == game.UserOfInterest.HotaUserId)
+				if (player.HotaUserId == gameInfo.UserOfInterest.HotaUserId)
 				{
 					continue;
 				}
@@ -146,22 +151,61 @@ namespace zsemlebot.services
 					sb.Append(", ");
 				}
 
-				sb.Append(HotaUserDescription(user));
+				sb.Append(HotaUserDescription(gameInfo.Game, player.HotaUser));
+			}
+
+			string template = "";
+			if (!string.IsNullOrWhiteSpace(gameInfo.Game.Template))
+			{
+				template = $"{gameInfo.Game.Template}; ";
 			}
 
 			if (sb.Length > 0)
 			{
-				return $"{mainUserDesc} vs {sb}";
+				return $"{template}{mainUserDesc} vs {sb}";
 			}
 			else
 			{
-				return $"{mainUserDesc} without opp.";
+				return $"{template}{mainUserDesc} without opp.";
 			}
 		}
 
-		private static string HotaUserDescription(HotaUser user)
+		private static string HotaUserDescription(HotaGame game, HotaUser user)
 		{
-			return $"{user.DisplayName}({user.Elo} elo)";
+			var sb = new StringBuilder();
+			sb.Append($"{user.Elo} elo");
+
+			var playerInfo = game.GetPlayer(user);
+			if (playerInfo != null)
+			{
+				if (!string.IsNullOrWhiteSpace(playerInfo.Color))
+				{
+					sb.Append($", {playerInfo.Color}");
+				}
+
+				if (!string.IsNullOrWhiteSpace(playerInfo.Faction))
+				{
+					sb.Append($", {playerInfo.Faction}");
+				}
+
+				if (playerInfo.Trade != null)
+				{
+					sb.Append($", ");
+					if (playerInfo.Trade > 0)
+					{
+						sb.Append('+');
+					}
+					else if (playerInfo.Trade < 0)
+					{
+						sb.Append('-');
+					}
+
+					sb.Append(playerInfo.Trade);
+					sb.Append(" gold");
+				}
+			}
+
+			return $"{user.DisplayName}({sb})";
 		}
 	}
 }
