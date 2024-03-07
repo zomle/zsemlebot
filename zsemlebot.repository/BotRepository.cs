@@ -46,6 +46,18 @@ namespace zsemlebot.repository
                            VALUES (@twitchUserId);", new { twitchUserId });
 		}
 
+		public void DeleteJoinedChannel(int twitchUserId)
+		{
+			JoinedChannels.RemoveAll(jc => jc.TwitchUserId == twitchUserId);
+			EnqueueWorkItem(@$"DELETE FROM [{JoinedChannelsTableName}] 
+							WHERE [TwitchUserId] = @twitchUserId;", new { twitchUserId });
+		}
+
+		public bool HasJoinedChannel(int twitchUserId)
+		{
+			return JoinedChannels.Any(jc => jc.TwitchUserId == twitchUserId);
+		}
+
 		public IEnumerable<TwitchUserData> ListJoinedChannels()
 		{
 			var userData = Query<TwitchUserData>($"SELECT tu.[TwitchUserId], tu.[DisplayName] " +
@@ -212,5 +224,5 @@ namespace zsemlebot.repository
             }
             lst.Add(link);
         }
-    }
+	}
 }

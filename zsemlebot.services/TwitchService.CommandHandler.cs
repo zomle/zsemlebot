@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Threading.Channels;
 using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.twitch;
@@ -18,12 +15,20 @@ namespace zsemlebot.services
 		{
 			switch (command)
 			{
+				case Constants.Command_Channel:
+					HandleChannelCommand(sourceMessageId, channel, sender, parameters);
+					break;
+
 				case Constants.Command_Elo:
 					HandleEloCommand(sourceMessageId, channel, sender, parameters);
 					break;
 
 				case Constants.Command_Game:
 					HandleGameCommand(sourceMessageId, channel, sender, parameters);
+					break;
+
+				case Constants.Command_Leave:
+					HandleLeaveCommand(sourceMessageId, channel, sender, parameters);
 					break;
 
 				case Constants.Command_Link:
@@ -42,6 +47,112 @@ namespace zsemlebot.services
 					HandleRepCommand(sourceMessageId, channel, sender, parameters);
 					break;
 			}
+		}
+
+		private void HandleChannelCommand(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
+		{
+			if (parameters == null)
+			{
+				return;
+			}
+
+			if (!sender.IsAdmin)
+			{
+				return;
+			}
+
+			if (channel[1..] != Config.Instance.Twitch.AdminChannel)
+			{
+				return;
+			}
+
+			var tokens = parameters.Split(' ');
+			if (tokens.Length != 2
+				|| (tokens[0] != "add" && tokens[0] != "del")
+				|| tokens[1][0] != '#')
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.ChannelInvalidMessage());
+				return;
+			}
+
+			var targetChannel = tokens[1];
+			var targetUserName = targetChannel[1..];
+			var targetUser = TwitchRepository.GetUser(targetUserName);
+
+			if (targetUser == null)
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.TwitchUserNotFound(targetUserName));
+				return;
+			}
+
+			if (tokens[0] == "add")
+			{
+				var hasJoinedTheChannel = BotRepository.HasJoinedChannel(targetUser.TwitchUserId);
+				if (hasJoinedTheChannel)
+				{
+					TrySendJoinCommand(targetChannel);
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.JoiningChannel(targetChannel));
+				}
+				else
+				{
+					BotRepository.AddJoinedChannel(targetUser.TwitchUserId);
+
+					TrySendJoinCommand(targetChannel);
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.JoiningChannel(targetChannel));
+				}
+			}
+			else if (tokens[0] == "del")
+			{
+				var hasJoinedTheChannel = BotRepository.HasJoinedChannel(targetUser.TwitchUserId);
+				if (hasJoinedTheChannel)
+				{
+					BotRepository.DeleteJoinedChannel(targetUser.TwitchUserId);
+
+					TrySendPartCommand(targetChannel);
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.LeavingChannel(targetChannel));
+				}
+				else
+				{
+					TrySendPartCommand(targetChannel);
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.LeavingChannel(targetChannel));
+				}
+			}
+			else
+			{
+				// should never happen
+				return;
+			}
+		}
+
+		private void HandleLeaveCommand(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
+		{
+			if (parameters == null)
+			{
+				return;
+			}
+
+			if (!sender.IsBroadcaster && !sender.IsAdmin)
+			{
+				return;
+			}
+
+			if (!string.Equals(channel[1..], parameters, StringComparison.InvariantCultureIgnoreCase))
+			{
+				return;
+			}
+
+			var targetChannel = parameters;
+			var targetUserName = targetChannel[1..];
+			var targetUser = TwitchRepository.GetUser(targetUserName);
+			if (targetUser == null)
+			{
+				return;
+			}
+
+			BotRepository.DeleteJoinedChannel(targetUser.TwitchUserId);
+
+			SendChatMessage(sourceMessageId, channel, MessageTemplates.LeavingChannel(targetChannel));
+			TrySendPartCommand(targetChannel);			
 		}
 
 		private void HandleOppCommand(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
@@ -496,7 +607,7 @@ namespace zsemlebot.services
 
 		private bool IsUserAllowedToEditGame(MessageSource sender)
 		{
-			var allowed = sender.IsModOrBroadcaster || sender.TwitchUserId == Config.Instance.Twitch.AdminUserId;
+			var allowed = sender.IsModOrBroadcaster || sender.IsAdmin;
 			if (allowed)
 			{
 				return allowed;
@@ -595,7 +706,7 @@ namespace zsemlebot.services
 				return;
 			}
 
-			if (sender.TwitchUserId != Config.Instance.Twitch.AdminUserId)
+			if (!sender.IsAdmin)
 			{
 				return;
 			}

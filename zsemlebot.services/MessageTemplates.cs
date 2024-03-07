@@ -35,6 +35,11 @@ namespace zsemlebot.services
 			return $"!link was incorrectly formatted. Usage: !link <add|del> {Constants.TwitchParameterPrefix}<twitch name> {Constants.HotaParameterPrefix}<hota name>";
 		}
 
+		public static string ChannelInvalidMessage()
+		{
+			return $"!channel was incorrectly formatted. Usage: !channel <add|del> <#channelname>";
+		}
+
 		public static string UserNotFound(string user)
 		{
 			return $"Can't find user '{user}'";
@@ -226,6 +231,16 @@ namespace zsemlebot.services
 			}
 
 			return $"Current opponent{(users.Count == 1 ? "" : "s")}: {sb}";
+		}
+
+		public static string JoiningChannel(string targetChannel)
+		{
+			return $"Joining '{targetChannel}' channel.";
+		}
+
+		public static string LeavingChannel(string targetChannel)
+		{
+			return $"Leaving '{targetChannel}' channel.";
 		}
 	}
 }

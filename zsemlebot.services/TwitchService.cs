@@ -255,6 +255,40 @@ namespace zsemlebot.services
             Client?.SendRawCommand(rawCommandText);
         }
 
+		public bool TrySendJoinCommand(string channel)
+		{
+			if (Client == null || string.IsNullOrEmpty(channel))
+			{
+				return false;
+			}
+
+			channel = channel.ToLower();
+			if (!channel.StartsWith('#'))
+			{
+				channel = $"#{channel}";
+			}
+
+			Client?.JoinChannel(channel);
+			return true;
+		}
+
+		public bool TrySendPartCommand(string channel)
+		{
+			if (Client == null || string.IsNullOrEmpty(channel))
+			{
+				return false;
+			}
+
+			channel = channel.ToLower();
+			if (!channel.StartsWith('#'))
+			{
+				channel = $"#{channel}";
+			}
+
+			Client?.PartChannel(channel);
+			return true;
+		}
+
         #region IDisposable implementation
         private bool disposedValue;
         protected virtual void Dispose(bool disposing)

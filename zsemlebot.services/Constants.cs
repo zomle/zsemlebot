@@ -5,6 +5,16 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
+		/// Usage: !channel <add|del> <#channelname>
+		/// </summary>
+		public const string Command_Channel = "!channel";
+
+		/// <summary>
+		/// Usage: !leave <twitchname>
+		/// </summary>
+		public const string Command_Leave = "!leave";
+
+		/// <summary>
 		/// Usage 1: !game 
 		/// Usage 2: !game edit [template] <hotauser1> [color] [faction] [trade] <hotauser2> [color] [faction] [trade]
 		/// Usage 3: !game <twitch/hota user>
