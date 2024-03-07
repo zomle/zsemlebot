@@ -207,5 +207,25 @@ namespace zsemlebot.services
 
 			return $"{user.DisplayName}({sb})";
 		}
+
+		public static string OppDescriptions(List<HotaUser> users)
+		{
+			if (users.Count == 0)
+			{
+				return "No opponent yet.";
+			}
+
+			var sb = new StringBuilder();
+			foreach (var opp in users)
+			{
+				if (sb.Length > 0)
+				{
+					sb.Append(", ");
+				}
+				sb.Append($"{opp.DisplayName}({opp.Elo} elo, {opp.Rep} rep)");
+			}
+
+			return $"Current opponent{(users.Count == 1 ? "" : "s")}: {sb}";
+		}
 	}
 }

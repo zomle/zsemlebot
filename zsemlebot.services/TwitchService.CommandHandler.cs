@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.twitch;
@@ -31,9 +34,41 @@ namespace zsemlebot.services
 					HandleLinkMeCommand(sourceMessageId, channel, sender, parameters);
 					break;
 
+				case Constants.Command_Opp:
+					HandleOppCommand(sourceMessageId, channel, sender, parameters);
+					break;
+
 				case Constants.Command_Rep:
 					HandleRepCommand(sourceMessageId, channel, sender, parameters);
 					break;
+			}
+		}
+
+		private void HandleOppCommand(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
+		{
+			var (_, queriedHotaUsers) = ListHotaUsers(channel, null);
+
+			var games = HotaService.FindGameForUsers(queriedHotaUsers);
+			if (games.Count == 0)
+			{
+				SendChatMessage(sourceMessageId, channel, MessageTemplates.GameNotFound(channel[1..]));
+			}
+			else
+			{
+				var game = games[0];
+
+				new Thread(() =>
+				{
+					var opps = game.Game.JoinedPlayers
+									.Where(jp => jp.HotaUserId != game.UserOfInterest.HotaUserId)
+									.Select(jp => jp.HotaUser)
+									.ToList();
+
+					HotaService.RequestUserRepAndWait(opps);
+					HotaService.RequestUserEloAndWait(opps);
+
+					SendChatMessage(sourceMessageId, channel, MessageTemplates.OppDescriptions(opps));
+				}).Start();
 			}
 		}
 

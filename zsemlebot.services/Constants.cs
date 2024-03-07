@@ -26,10 +26,15 @@ namespace zsemlebot.services
 		/// </summary>
 		public const string Command_Elo = "!elo";
 
-        /// <summary>
-        /// Usage: !rep [<twitchname>|<hotaname>]
-        /// </summary>
-        public const string Command_Rep = "!rep";
+		/// <summary>
+		/// Usage: !opp
+		/// </summary>
+		public const string Command_Opp = "!opp";
+
+		/// <summary>
+		/// Usage: !rep [<twitchname>|<hotaname>]
+		/// </summary>
+		public const string Command_Rep = "!rep";
 
 		/// <summary>
 		/// This is how much time we will wait before responding to use with the elo value we already have in the database.
