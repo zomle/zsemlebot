@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using zsemlebot.core.Domain;
 
 namespace zsemlebot.repository.Models
@@ -10,11 +11,14 @@ namespace zsemlebot.repository.Models
         public int Elo { get; set; }
         public int Rep { get; set; }
         public DateTime LastUpdatedAtUtc { get; set; }
+		public Dictionary<uint, HotaUserGameHistoryEntry> GameHistory { get;  set; }
+		public bool GameHistoryUpToDate { get; internal set; }
 
-        public HotaUserData()
+		public HotaUserData()
         {
             DisplayName = string.Empty;
-        }
+			GameHistory = new Dictionary<uint, HotaUserGameHistoryEntry>();
+		}
 
         public HotaUserData(HotaUser user)
         {
@@ -23,6 +27,7 @@ namespace zsemlebot.repository.Models
             Elo = user.Elo;
             Rep = user.Rep;
             LastUpdatedAtUtc = user.UpdatedAtUtc;
-        }
+			GameHistory = new Dictionary<uint, HotaUserGameHistoryEntry>();
+		}
     }
 }

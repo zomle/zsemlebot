@@ -20,7 +20,7 @@ namespace zsemlebot.services
 			var oldHotaUsers = oldRepository.ListHotaUsers();
 			foreach (var user in oldHotaUsers)
 			{
-				var newUser = new core.Domain.HotaUser(user.UserId, user.UserName, user.UserElo, 0, null, user.LastUpdatedAtUtc);
+				var newUser = new core.Domain.HotaUser(user.UserId, user.UserName, user.UserElo, 0, null, user.LastUpdatedAtUtc, null, false);
 				HotaRepository.Instance.UpdateHotaUser(newUser);
 			}
 

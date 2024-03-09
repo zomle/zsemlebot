@@ -2,7 +2,7 @@
 
 namespace zsemlebot.hota.Events
 {
-    public abstract class HotaEvent
-    {
-    }
+	public abstract class HotaEvent
+	{
+	}
 }

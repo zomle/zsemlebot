@@ -2,13 +2,13 @@
 
 namespace zsemlebot.hota.Events
 {
-    public class UserLeftLobby : HotaEvent
-    {
-        public uint HotaUserId { get; }
+	public class UserLeftLobby : HotaEvent
+	{
+		public uint HotaUserId { get; }
 
-        public UserLeftLobby(uint userId)
-        {
-            HotaUserId = userId;
-        }
-    }
+		public UserLeftLobby(uint userId)
+		{
+			HotaUserId = userId;
+		}
+	}
 }

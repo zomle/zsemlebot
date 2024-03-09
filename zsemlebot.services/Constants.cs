@@ -5,6 +5,11 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
+		/// Usage: !today [twitchname|hotaname]
+		/// </summary>
+		public const string Command_Today = "!today";
+
+		/// <summary>
 		/// Usage: !channel <add|del> <#channelname>
 		/// </summary>
 		public const string Command_Channel = "!channel";
@@ -47,9 +52,20 @@ namespace zsemlebot.services
 		public const string Command_Rep = "!rep";
 
 		/// <summary>
-		/// This is how much time we will wait before responding to use with the elo value we already have in the database.
+		/// This is how much time we will wait before responding to user with the elo value
+		/// we already have in the database.
 		/// </summary>
 		public static readonly TimeSpan RequestEloTimeOut = TimeSpan.FromSeconds(5);
+
+		/// <summary>
+		/// This is how much time we will wait before responding to user.
+		/// </summary>
+		public static readonly TimeSpan RequestRepTimeOut = TimeSpan.FromSeconds(5);
+
+		/// <summary>
+		/// This is how much time we will wait before responding to user with
+		/// </summary>
+		public static readonly TimeSpan RequestGameHistoryTimeOut = TimeSpan.FromSeconds(10);
 
 		public const int UserLinkValidityLengthInMins = 30;
 

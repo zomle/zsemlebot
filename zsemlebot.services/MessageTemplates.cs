@@ -242,5 +242,30 @@ namespace zsemlebot.services
 		{
 			return $"Leaving '{targetChannel}' channel.";
 		}
+
+		public static string HistoryTodaySingleAccount(string queriedUser, int wins, int losses, int eloChange, int currentElo)
+		{ 
+			string endS = queriedUser.EndsWith('s') ? "" : "s";
+			string winPl = wins == 1 ? "" : "s";
+			string losePl = losses == 1 ? "" : "es";
+			string eloDelta = $"{(eloChange > 0 ? "+" : "-")}{Math.Abs(eloChange)}";
+
+			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, {currentElo} total)";
+		}
+
+		public static string HistoryTodayMultipleAccount(string queriedUser, int wins, int losses, int eloChange, int accountCount)
+		{
+			string endS = queriedUser.EndsWith('s') ? "" : "s";
+			string winPl = wins == 1 ? "" : "s";
+			string losePl = losses == 1 ? "" : "es";
+			string eloDelta = $"{(eloChange > 0 ? "+" : "-")}{Math.Abs(eloChange)}";
+
+			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, on {accountCount} accounts)";
+		}
+
+		public static string HistoryTodayNoInfo(string queriedUser)
+		{
+			return $"Couldn't find any ranked games finished today for {queriedUser}.";
+		}
 	}
 }

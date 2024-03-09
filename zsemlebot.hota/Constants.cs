@@ -28,5 +28,6 @@ namespace zsemlebot.hota
         public const short MsgTypex85_Unknown1 = 0x85;
         public const short MsgTypex8A_Unknown2 = 0x8A;
         public const short MsgTypex8C_GameStarted = 0x8C; //game startes
-    }
+		public const short MsgTypex98_RankedGameHistory = 0x98;
+	}
 }

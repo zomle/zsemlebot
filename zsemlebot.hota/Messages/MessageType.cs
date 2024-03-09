@@ -8,5 +8,6 @@
         RequestUserRep = 0x68,
         RequestUserElo = 0x74,
         MaybePing = 0x95,
-    }
+		RequestUserHistory = 0x97,
+	}
 }

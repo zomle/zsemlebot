@@ -1,14 +1,13 @@
-﻿using System;
-using zsemlebot.hota.Extensions;
+﻿using zsemlebot.hota.Extensions;
 
 namespace zsemlebot.hota.Messages
 {
-	public class RequestUserEloMessage : HotaMessageBase
+	public class RequestUserHistoryMessage : HotaMessageBase
 	{
 		public uint TargetUserId { get; }
 
-		public RequestUserEloMessage(uint targetUserId)
-			: base(MessageType.RequestUserElo, 8)
+		public RequestUserHistoryMessage(uint targetUserId)
+			: base(MessageType.RequestUserHistory, 0xc)
 		{
 			TargetUserId = targetUserId;
 		}
@@ -17,6 +16,7 @@ namespace zsemlebot.hota.Messages
 		{
 			var buffer = CreateMessageBuffer();
 			buffer.WriteInt(4, TargetUserId);
+			buffer.WriteInt(8, 0xFFFFFFFF);
 			return new DataPackage(buffer);
 		}
 	}

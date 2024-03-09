@@ -49,7 +49,23 @@ namespace zsemlebot.repository
             }
         }
 
-        public void UpdateHotaUser(HotaUser hotaUser)
+		public void UpdateGameHistory(uint mainHotaUserId, IReadOnlyList<HotaUserGameHistoryEntry> entries)
+		{
+			if (!HotaUsersById.TryGetValue(mainHotaUserId, out var mainUser))
+			{
+				return;
+			}
+
+			foreach (var entry in entries)
+			{
+				mainUser.GameHistory[entry.GameId] = entry;
+			}
+
+			mainUser.LastUpdatedAtUtc = DateTime.UtcNow;
+			mainUser.GameHistoryUpToDate = true;
+		}
+
+		public void UpdateHotaUser(HotaUser hotaUser)
         {
             if (HotaUsersById.TryGetValue(hotaUser.HotaUserId, out var oldUser))
             {
@@ -137,7 +153,7 @@ namespace zsemlebot.repository
                 return null;
             }
 
-            return new HotaUser(userData.HotaUserId, userData.DisplayName, userData.Elo, userData.Rep, HotaUserStatus.Offline, userData.LastUpdatedAtUtc);
+            return new HotaUser(userData.HotaUserId, userData.DisplayName, userData.Elo, userData.Rep, HotaUserStatus.Offline, userData.LastUpdatedAtUtc, userData.GameHistory, userData.GameHistoryUpToDate);
         }
 
         public HotaUser? GetUser(string userName)
@@ -147,7 +163,7 @@ namespace zsemlebot.repository
                 return null;
             }
 
-            return new HotaUser(userData.HotaUserId, userData.DisplayName, userData.Elo, userData.Rep, HotaUserStatus.Offline, userData.LastUpdatedAtUtc);
+            return new HotaUser(userData.HotaUserId, userData.DisplayName, userData.Elo, userData.Rep, HotaUserStatus.Offline, userData.LastUpdatedAtUtc, userData.GameHistory, userData.GameHistoryUpToDate);
         }
-    }
+	}
 }
