@@ -5,6 +5,11 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
+		/// Usage: !streak
+		/// </summary>
+		public const string Command_Streak = "!streak";
+
+		/// <summary>
 		/// Usage: !today [twitchname|hotaname]
 		/// </summary>
 		public const string Command_Today = "!today";

@@ -267,5 +267,21 @@ namespace zsemlebot.services
 		{
 			return $"Couldn't find any ranked games finished today for {queriedUser}.";
 		}
+
+		public static string Streak(string queriedUser, bool winStreak, int streak)
+		{
+			var winlose = winStreak ? "winning" : "losing";
+			return $"{queriedUser} is on a {winlose} streak, {winlose} {streak} games in a row.";
+		}
+
+		public static string StreakNoStreak(string queriedUser, bool winStreak)
+		{
+			return $"{queriedUser} is not on a streak, last game was a {(winStreak ? "win" : "loss")}.";
+		}
+
+		public static string StreakNoGamesFound(string queriedUser)
+		{
+			return $"Couldn't find games for {queriedUser}.";
+		}
 	}
 }
