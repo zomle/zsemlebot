@@ -17,6 +17,7 @@ namespace zsemlebot.repository
 		protected const string HotaUserDataTableName = "HotaUserData";
 		protected const string TwitchHotaUserLinkTableName = "TwitchHotaUserLink";
 		protected const string TwitchHotaUserLinkRequestTableName = "TwitchHotaUserLinkRequest";
+		protected const string TwitchUserIgnoreListTableName = "TwitchUserIgnoreList";
 
 		private static readonly Queue<DatabaseWorkItem> WorkItemQueue;
 		private static readonly object padlock;
@@ -99,6 +100,11 @@ namespace zsemlebot.repository
 					[HotaUserId] INTEGER NOT NULL,
                     [AuthCode] TEXT NOT NULL,
                     [ValidUntilUtc] TEXT NOT NULL
+				)");
+
+			ExecuteNonQuery($@"CREATE TABLE IF NOT EXISTS [{TwitchUserIgnoreListTableName}]
+				(
+					[TwitchUserId] INTEGER NOT NULL
 				)");
 		}
 

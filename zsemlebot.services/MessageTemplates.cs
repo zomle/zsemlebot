@@ -32,12 +32,16 @@ namespace zsemlebot.services
 
 		public static string UserLinkInvalidMessage()
 		{
-			return $"!link was incorrectly formatted. Usage: !link <add|del> {Constants.TwitchParameterPrefix}<twitch name> {Constants.HotaParameterPrefix}<hota name>";
+			return $"{Constants.Command_Link} was incorrectly formatted. Usage: {Constants.Command_Link} <add|del> {Constants.TwitchParameterPrefix}<twitch name> {Constants.HotaParameterPrefix}<hota name>";
 		}
 
 		public static string ChannelInvalidMessage()
 		{
-			return $"!channel was incorrectly formatted. Usage: !channel <add|del> <#channelname>";
+			return $"{Constants.Command_Channel} was incorrectly formatted. Usage: {Constants.Command_Channel} <add|del> <#channelname>";
+		}
+		public static string IgnoreInvalidMessage()
+		{
+			return $"{Constants.Command_Ignore} was incorrectly formatted. Usage: {Constants.Command_Ignore} <add|del> <twitch user> or {Constants.Command_Ignore} list";
 		}
 
 		public static string UserNotFound(string user)
@@ -67,7 +71,7 @@ namespace zsemlebot.services
 
 		public static string UserLinkTwitchMessage(string authCode, string twitchUser, string adminChannelName)
 		{
-			return $"Auth code: {authCode}. Send '!linkme {authCode}' as '{twitchUser}' on twitch in '{adminChannelName}' channel chat.";
+			return $"Auth code: {authCode}. Send '{Constants.Command_LinkMe} {authCode}' as '{twitchUser}' on twitch in '{adminChannelName}' channel chat.";
 		}
 
 		public static string UserLinkDeleted(string twitchUser, string hotaUser)
@@ -282,6 +286,27 @@ namespace zsemlebot.services
 		public static string StreakNoGamesFound(string queriedUser)
 		{
 			return $"Couldn't find games for {queriedUser}.";
+		}
+
+		public static string IgnoredUserList(IReadOnlyList<TwitchUser> users)
+		{
+			if (users.Count == 0) 
+			{
+				return $"Nobody is ignored :)";
+			}
+
+			var userNames = users.Select(u => u.DisplayName).OrderBy(n => n);
+			return $"Ignored users: {string.Join(", ", userNames)}";
+		}
+
+		public static string UserAddToIgnoreList(string userName)
+		{
+			return $"User added to the ignore list: {userName}";
+		}
+
+		public static string UserRemovedFromIgnoreList(string userName)
+		{
+			return $"User removed from the ignore list: {userName}";
 		}
 	}
 }

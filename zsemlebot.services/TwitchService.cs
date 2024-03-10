@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using zsemlebot.core;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.repository;
+using zsemlebot.services.Commands;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services
@@ -40,15 +43,17 @@ namespace zsemlebot.services
         private Thread HandleMessagesThread { get; set; }
         private int ReconnectCount { get; set; }
 
+		private Dictionary<string, Queue<DateTime>> RecentUserCommands { get; }
+
         private static TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
-        private static HotaRepository HotaRepository { get { return HotaRepository.Instance; } }
-        private static BotRepository BotRepository { get { return BotRepository.Instance; } }
 
         private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
 
         public TwitchService(HotaService hotaService)
         {
-            ReconnectCount = 0;
+			RecentUserCommands = new Dictionary<string, Queue<DateTime>>();
+
+			ReconnectCount = 0;
 
             HandleMessagesThread = new Thread(HandleMessagesWorker);
             HandleMessagesThread.Start();
@@ -65,8 +70,9 @@ namespace zsemlebot.services
             Client = new IrcClient();
             Client.StatusChanged += Client_StatusChanged;
             Client.MessageReceived += Client_MessageReceived;
+			RecentUserCommands.Clear();
 
-            var connected = Client.Connect();
+			var connected = Client.Connect();
             if (!connected)
             {
                 Client.Dispose();
@@ -136,7 +142,7 @@ namespace zsemlebot.services
             tmpClient.StatusChanged += Client_StatusChanged;
             tmpClient.MessageReceived += Client_MessageReceived;
 
-            var reconnected = tmpClient.Connect();
+			var reconnected = tmpClient.Connect();
             if (reconnected)
             {
                 Client.StatusChanged -= Client_StatusChanged;
@@ -144,7 +150,8 @@ namespace zsemlebot.services
                 Client.Dispose();
 
                 Client = tmpClient;
-                return true;
+				RecentUserCommands.Clear();
+				return true;
             }
             else
             {
@@ -152,7 +159,43 @@ namespace zsemlebot.services
             }
         }
 
-        public void SendChatMessage(string channel, string message)
+		public bool IsUserSpammingCommands(string channel, string displayName)
+		{
+			if (!RecentUserCommands.TryGetValue(displayName, out var commandTimes))
+			{
+				return false;
+			}
+
+			if (commandTimes.Count < Constants.SpamProtection_MessageCount)
+			{
+				return false;
+			}
+
+			var firstCommand = commandTimes.Peek();
+			if (DateTime.Now - firstCommand < Constants.SpamProtection_TimeWindow) 
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		public void RegisterUserCommandUsage(string channel, string displayName)
+		{
+			if (!RecentUserCommands.TryGetValue(displayName, out var commandTimes))
+			{
+				commandTimes = new Queue<DateTime>();
+				RecentUserCommands[displayName] = commandTimes;
+			}
+
+			commandTimes.Enqueue(DateTime.Now);
+			if (commandTimes.Count > 3)
+			{
+				commandTimes.Dequeue();
+			}
+		}
+
+		public void SendChatMessage(string channel, string message)
         {
             Client?.SendPrivMsg(channel, message);
         }
@@ -232,7 +275,28 @@ namespace zsemlebot.services
             }
         }
 
-        private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
+		private void HandleCommand(string? sourceMessageId, string channel, MessageSource sender, string commandText, string? parameters)
+		{
+			TwitchCommand? command = commandText switch
+			{
+				Constants.Command_Channel => new ChannelCommand(this, HotaService),
+				Constants.Command_Elo => new EloCommand(this, HotaService),
+				Constants.Command_Game => new GameCommand(this, HotaService),
+				Constants.Command_Ignore => new IgnoreCommand(this, HotaService),
+				Constants.Command_Leave => new LeaveCommand(this, HotaService),
+				Constants.Command_Link => new LinkCommand(this, HotaService),
+				Constants.Command_LinkMe => new LinkMeCommand(this, HotaService),
+				Constants.Command_Opp => new OppCommand(this, HotaService),
+				Constants.Command_Rep => new RepCommand(this, HotaService),
+				Constants.Command_Streak => new StreakCommand(this, HotaService),
+				Constants.Command_Today => new TodayCommand(this, HotaService),
+				_ => null,
+			};
+
+			command?.Handle(sourceMessageId, channel, sender, parameters);
+		}
+
+		private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
         {
             messageReceived?.Invoke(sender, e);
         }

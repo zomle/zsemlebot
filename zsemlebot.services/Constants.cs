@@ -5,7 +5,14 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
-		/// Usage: !streak
+		/// Usage: !ignore <add|del> <twitchusername>
+		/// Usage: !ignore list
+		/// </summary>
+		/// 
+		public const string Command_Ignore = "!ignore";
+
+		/// <summary>
+		/// Usage: !streak [twitchname|hotaname]
 		/// </summary>
 		public const string Command_Streak = "!streak";
 
@@ -84,5 +91,14 @@ namespace zsemlebot.services
 		/// </summary>
 		public const string HotaParameterPrefix = "hota=";
 
+		/// <summary>
+		/// Number of messages allowed within the time window without triggering spam protection.
+		/// </summary>
+		public const int SpamProtection_MessageCount = 2;
+
+		/// <summary>
+		/// Time window that is checked against number of commands sent.
+		/// </summary>
+		public static readonly TimeSpan SpamProtection_TimeWindow = TimeSpan.FromSeconds(5);
 	}
 }

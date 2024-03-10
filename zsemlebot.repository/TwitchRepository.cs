@@ -12,6 +12,7 @@ namespace zsemlebot.repository
 
         private Dictionary<int, TwitchUserData> TwitchUsersById { get; set; }
         private Dictionary<string, TwitchUserData> TwitchUsersByName { get; set; }
+		private HashSet<int> IgnoredTwitchUserIds { get; set; }
 
         static TwitchRepository()
         {
@@ -22,8 +23,10 @@ namespace zsemlebot.repository
 		{
             TwitchUsersById = new Dictionary<int, TwitchUserData>();
             TwitchUsersByName = new Dictionary<string, TwitchUserData>();
+			IgnoredTwitchUserIds = new HashSet<int>();
 
             LoadTwitchUsers();
+			LoadIgnoreList();
         }
 
         private void LoadTwitchUsers()
@@ -47,6 +50,40 @@ namespace zsemlebot.repository
 				TwitchUsersByName.Add(model.DisplayName.ToLower(), model);
             }
         }
+
+
+
+		private void LoadIgnoreList()
+		{
+			var twitchUserIds = Query<int>($"SELECT [TwitchUserId] FROM [{TwitchUserIgnoreListTableName}];");
+			foreach (var twitchUserId in twitchUserIds)
+			{
+				IgnoredTwitchUserIds.Add(twitchUserId);
+			}
+		}
+
+		public IReadOnlyList<TwitchUser> ListIgnoredUsers()
+		{
+			var result = new List<TwitchUser>();
+
+			foreach (var userId in IgnoredTwitchUserIds)
+			{
+				var user = GetUser(userId);
+				if (user == null)
+				{
+					continue;
+				}
+
+				result.Add(user);
+			}
+
+			return result;
+		}
+
+		public bool IsUserOnIgnoreList(int userId)
+		{
+			return IgnoredTwitchUserIds.Contains(userId);
+		}
 
         public TwitchUser GetUser(int userId)
         {
@@ -106,5 +143,27 @@ namespace zsemlebot.repository
                             VALUES (@id, @newName);", new { id, newName });
             }
         }
-    }
+
+		public void AddUserToIgnoreList(int userId)
+		{
+			if (!IgnoredTwitchUserIds.Add(userId))
+			{
+				return;
+			}
+
+			EnqueueWorkItem(@$"INSERT INTO [{TwitchUserIgnoreListTableName}] ([TwitchUserId]) 
+                           VALUES (@twitchUserId);", new { twitchUserId = userId });
+		}
+
+		public void RemoveUserFromIgnoreList(int userId)
+		{
+			if (!IgnoredTwitchUserIds.Remove(userId))
+			{
+				return;
+			}
+
+			EnqueueWorkItem(@$"DELETE FROM [{TwitchUserIgnoreListTableName}] 
+                           WHERE [TwitchUserId] = @twitchUserId;", new { twitchUserId = userId });
+		}
+	}
 }
