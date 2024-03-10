@@ -65,6 +65,18 @@ namespace zsemlebot.repository
 			mainUser.GameHistoryUpToDate = true;
 		}
 
+		public void InvalidateGameHistory(HotaGamePlayer player)
+		{
+			player.HotaUser.GameHistoryUpToDate = false;
+
+			if (!HotaUsersById.TryGetValue(player.HotaUserId, out var mainUser))
+			{
+				return;
+			}
+
+			mainUser.GameHistoryUpToDate = false;
+		}
+
 		public void UpdateHotaUser(HotaUser hotaUser)
         {
             if (HotaUsersById.TryGetValue(hotaUser.HotaUserId, out var oldUser))

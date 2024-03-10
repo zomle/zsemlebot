@@ -203,6 +203,7 @@ namespace zsemlebot.services
 		{
 			GameDirectory.UpdateTemplate(game.GameKey, newTemplateName);
 		}
+
 		public void UpdatePlayerInfo(HotaGame game, HotaGamePlayer player, string? color, string? faction, int? tradeOutcome)
 		{
 			GameDirectory.UpdatePlayerInfo(game.GameKey, player, color, faction, tradeOutcome);
@@ -507,6 +508,17 @@ namespace zsemlebot.services
 		{
 			var game = GameDirectory.GameStarted(evnt.GameKey);
 
+			if (game == null)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game started, but Key not found in directory: {evnt.GameKey}");
+				return;
+			}
+
+			foreach (var player in game.JoinedPlayers)
+			{
+				HotaRepository.Instance.InvalidateGameHistory(player);
+			}
+
 			BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game started. Players: {string.Join(", ", game.JoinedPlayers.Select(ju => ju.PlayerName))}");
 		}
 
@@ -524,7 +536,7 @@ namespace zsemlebot.services
 
 			foreach (var player in game.JoinedPlayers)
 			{
-				player.HotaUser.GameHistoryUpToDate = false;
+				HotaRepository.Instance.InvalidateGameHistory(player);
 			}
 
 			BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game ended. Players: {string.Join(", ", game.JoinedPlayers.Select(ju => ju.PlayerName))}");

@@ -7,24 +7,24 @@ using zsemlebot.services.Log;
 
 namespace zsemlebot.services
 {
-    public class HotaGameDirectory
-    {
-        public int NotFullCount { get; private set; }
-        public int NotStartedCount { get; private set; }
-        public int InProgressCount { get; private set; }
+	public class HotaGameDirectory
+	{
+		public int NotFullCount { get; private set; }
+		public int NotStartedCount { get; private set; }
+		public int InProgressCount { get; private set; }
 
-        private Dictionary<GameKey, HotaGame> ActiveGames { get; }
+		private Dictionary<GameKey, HotaGame> ActiveGames { get; }
 
-        public HotaGameDirectory()
-        {
-            ActiveGames = new Dictionary<GameKey, HotaGame>(1000);
+		public HotaGameDirectory()
+		{
+			ActiveGames = new Dictionary<GameKey, HotaGame>(1000);
 
-            NotFullCount = 0;
-            NotStartedCount = 0;
-            InProgressCount = 0;
-        }
+			NotFullCount = 0;
+			NotStartedCount = 0;
+			InProgressCount = 0;
+		}
 
-        public HotaGame? FindGame(HotaUser user)
+		public HotaGame? FindGame(HotaUser user)
 		{
 			foreach (var game in ActiveGames.Values)
 			{
@@ -43,90 +43,90 @@ namespace zsemlebot.services
 			return result;
 		}
 
-        public void AddGame(HotaGame game)
-        {
-            if (ActiveGames.ContainsKey(game.GameKey))
-            {
-                GameEnded(game.GameKey);
-            }
+		public void AddGame(HotaGame game)
+		{
+			if (ActiveGames.ContainsKey(game.GameKey))
+			{
+				GameEnded(game.GameKey);
+			}
 
-            InProgressCount++;
+			InProgressCount++;
 
-            ActiveGames.Add(game.GameKey, game);
+			ActiveGames.Add(game.GameKey, game);
 
-            if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
-            {
-                BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
-            }
-        }
+			if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
+			}
+		}
 
-        public HotaGame? GameStarted(GameKey gameKey)
-        {
-            if (!ActiveGames.TryGetValue(gameKey, out var game))
-            {
-                return null;
-            }
+		public HotaGame? GameStarted(GameKey gameKey)
+		{
+			if (!ActiveGames.TryGetValue(gameKey, out var game))
+			{
+				return null;
+			}
 
-            InProgressCount++;
+			InProgressCount++;
 
-            if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
-            {
-                BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
-            }
+			if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
+			}
 
-            return game;
-        }
+			return game;
+		}
 
-        public HotaGame? GameEnded(GameKey gameKey)
-        {
-            if (!ActiveGames.TryGetValue(gameKey, out var game))
-            {
-                return null;
-            }
+		public HotaGame? GameEnded(GameKey gameKey)
+		{
+			if (!ActiveGames.TryGetValue(gameKey, out var game))
+			{
+				return null;
+			}
 
-            InProgressCount--;
+			InProgressCount--;
 
-            game.Status = HotaGameStatus.Finished;
+			game.Status = HotaGameStatus.Finished;
 
-            ActiveGames.Remove(gameKey);
+			ActiveGames.Remove(gameKey);
 
-            if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
-            {
-                BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
-            }
+			if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
+			}
 
-            return game;
-        }
+			return game;
+		}
 
-        public void UserJoin(GameKey gameKey, HotaUser user)
-        {
-            if (!ActiveGames.TryGetValue(gameKey, out var game))
-            {
-                return;
-            }
+		public void UserJoin(GameKey gameKey, HotaUser user)
+		{
+			if (!ActiveGames.TryGetValue(gameKey, out var game))
+			{
+				return;
+			}
 
-            game.JoinedPlayers.Add(new HotaGamePlayer(user));
+			game.JoinedPlayers.Add(new HotaGamePlayer(user));
 
-            if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
-            {
-                BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
-            }
-        }
+			if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
+			}
+		}
 
-        public void UserLeft(GameKey gameKey, HotaUser user)
-        {
-            if (!ActiveGames.TryGetValue(gameKey, out var game))
-            {
-                return;
-            }
+		public void UserLeft(GameKey gameKey, HotaUser user)
+		{
+			if (!ActiveGames.TryGetValue(gameKey, out var game))
+			{
+				return;
+			}
 
-            game.JoinedPlayers.RemoveAll(ju => ju.HotaUserId == user.HotaUserId);
+			game.JoinedPlayers.RemoveAll(ju => ju.HotaUserId == user.HotaUserId);
 
-            if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
-            {
-                BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
-            }
-        }
+			if (ActiveGames.Count != InProgressCount + NotStartedCount + NotFullCount)
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Active game count ({ActiveGames.Count}) not equal to InProgressCount ({InProgressCount}) + NotStartedCount ({NotStartedCount}) + NotFullCount ({NotFullCount})");
+			}
+		}
 
 		public void UpdateTemplate(GameKey gameKey, string newTemplateName)
 		{
