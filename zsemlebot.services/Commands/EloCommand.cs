@@ -1,5 +1,8 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using zsemlebot.core.Domain;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services.Commands
@@ -28,8 +31,26 @@ namespace zsemlebot.services.Commands
 
 				if (twitchUser != null)
 				{
-					var message = MessageTemplates.EloForTwitchUser(twitchUser, response.UpdatedUsers.Concat(response.NotUpdatedUsers));
-					TwitchService.SendChatMessage(sourceMessageId, channel, message);
+					var settings = BotRepository.ListZsemlebotSettings(s => s.TargetTwitchUserId == twitchUser.TwitchUserId && s.SettingName == Constants.Settings_CustomElo);
+
+					var channelTwitchUser = TwitchRepository.GetUser(channel[1..]);
+					var setting = settings.FirstOrDefault(s => s.ChannelTwitchUserId == channelTwitchUser?.TwitchUserId);
+					if (setting == null)
+					{
+						setting = settings.FirstOrDefault(s => s.ChannelTwitchUserId == null);
+					}
+
+					string eloMessage;
+					if (setting != null)
+					{
+						eloMessage = FormatCustomEloMessage(twitchUser, setting.SettingValue, response.UpdatedUsers.Concat(response.NotUpdatedUsers));
+					}
+					else
+					{
+						eloMessage = MessageTemplates.EloForTwitchUser(twitchUser, response.UpdatedUsers.Concat(response.NotUpdatedUsers));
+					}
+
+					TwitchService.SendChatMessage(sourceMessageId, channel, eloMessage);
 				}
 				else
 				{
@@ -37,6 +58,29 @@ namespace zsemlebot.services.Commands
 					TwitchService.SendChatMessage(sourceMessageId, channel, message);
 				}
 			}).Start();
+		}
+
+		private string FormatCustomEloMessage(TwitchUser twitchUser, string? formatString, IEnumerable<HotaUser> hotaUsers)
+		{
+			if (formatString == null)
+			{
+				return MessageTemplates.EloForTwitchUser(twitchUser, hotaUsers);
+			}
+
+			string result = formatString;
+
+			int maxElo = hotaUsers.Max(hu => hu.Elo);
+			result = result.Replace(Constants.Settings_CustomElo_MaxEloOption, maxElo.ToString());
+
+			int minElo = hotaUsers.Min(hu => hu.Elo);
+			result = result.Replace(Constants.Settings_CustomElo_MinEloOption, minElo.ToString());
+
+			var userElos = hotaUsers
+					.OrderBy(hu => hu.DisplayName)
+					.Select(hu => $"{hu.DisplayName}({hu.Elo})");
+			result = result.Replace(Constants.Settings_CustomElo_AllElosOption, string.Join(", ", userElos));
+
+			return result;
 		}
 	}
 }

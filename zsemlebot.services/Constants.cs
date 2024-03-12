@@ -112,8 +112,17 @@ namespace zsemlebot.services
 
 		public const string Settings_TimeZone = "timezone";
 		public const string Settings_CustomElo = "customelo";
+		public const string Settings_CustomRep = "customrep";
 
 		public const string Settings_Enable = "enable";
 		public const string Settings_Disable = "disable";
+
+		public const string Settings_CustomElo_MaxEloOption = "%MAXELO%";
+		public const string Settings_CustomElo_MinEloOption = "%MINELO%";
+		public const string Settings_CustomElo_AllElosOption = "%ALLELOS%";
+
+		public const string Settings_CustomRep_MaxRepOption =  "%MAXREP%";
+		public const string Settings_CustomRep_MinRepOption =  "%MINREP%";
+		public const string Settings_CustomRep_AllRepsOption = "%ALLREPS%";
 	}
 }

@@ -225,8 +225,8 @@ namespace zsemlebot.services.Commands
 
 			var allSettingNames = new[]
 			{
-					Constants.Settings_TimeZone, Constants.Settings_CustomElo
-				};
+				Constants.Settings_TimeZone, Constants.Settings_CustomElo
+			};
 
 			if (!allSettingNames.Contains(providedSettingName))
 			{
@@ -288,10 +288,21 @@ namespace zsemlebot.services.Commands
 				Constants.Settings_TimeZone
 			};
 
-			if (!allOptions.Contains(providedOption))
+			switch (providedOption.ToLower())
 			{
-				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidOptionMessage(providedOption, allOptions));
-				return;
+				case Constants.Settings_TimeZone:
+					var timeZoneInfo = CleanTimeZoneArgument(newValue);
+					if (timeZoneInfo == null)
+					{
+						TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidTimeZone(newValue));
+						return;
+					}
+					newValue = timeZoneInfo;
+					break;
+
+				default:
+					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidOptionMessage(providedOption, allOptions));
+					return;
 			}
 
 			if (newValue == null)
@@ -299,17 +310,6 @@ namespace zsemlebot.services.Commands
 				BotRepository.DeleteZsemlebotSetting(null, sender.TwitchUserId, providedOption);
 				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingRemoved(providedOption));
 				return;
-			}
-
-			if (providedOption == Constants.Settings_TimeZone)
-			{
-				var timeZoneInfo = GetTimeZoneText(newValue);
-				if (timeZoneInfo == null)
-				{
-					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidTimeZone(newValue));
-					return;
-				}
-				newValue = timeZoneInfo;
 			}
 
 			BotRepository.UpdateZsemlebotSetting(null, sender.TwitchUserId, providedOption, newValue);
@@ -351,10 +351,25 @@ namespace zsemlebot.services.Commands
 				Constants.Settings_TimeZone, Constants.Settings_CustomElo
 			};
 
-			if (!allOptions.Contains(providedOption))
+			switch (providedOption.ToLower())
 			{
-				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidOptionMessage(providedOption, allOptions));
-				return;
+				case Constants.Settings_TimeZone:
+					var timeZoneInfo = CleanTimeZoneArgument(newValue);
+					if (timeZoneInfo == null)
+					{
+						TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidTimeZone(newValue));
+						return;
+					}
+					newValue = timeZoneInfo;
+					break;
+
+				case Constants.Settings_CustomElo:
+				case Constants.Settings_CustomRep:
+					break;
+
+				default:
+					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotInvalidOptionMessage(providedOption, allOptions));
+					return;
 			}
 
 			if (newValue == null)
@@ -370,7 +385,7 @@ namespace zsemlebot.services.Commands
 		}
 
 		private static readonly Regex timeZoneRegex = new Regex("^utc\\s?(?<plusminus>[+-])\\s?(?<hours>\\d{1,2})(?::(?<mins>\\d{1,2}))?$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
-		private string? GetTimeZoneText(string parameter)
+		private string? CleanTimeZoneArgument(string parameter)
 		{
 			if (string.Equals("utc", parameter, StringComparison.CurrentCultureIgnoreCase))
 			{

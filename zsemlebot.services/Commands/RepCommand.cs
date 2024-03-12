@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using zsemlebot.core.Domain;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services.Commands
@@ -28,8 +30,27 @@ namespace zsemlebot.services.Commands
 
 				if (twitchUser != null)
 				{
-					var message = MessageTemplates.RepForTwitchUser(twitchUser, response.UpdatedUsers.Concat(response.NotUpdatedUsers));
-					TwitchService.SendChatMessage(sourceMessageId, channel, message);
+					var settings = BotRepository.ListZsemlebotSettings(s => s.TargetTwitchUserId == twitchUser.TwitchUserId && s.SettingName == Constants.Settings_CustomRep);
+
+					var channelTwitchUser = TwitchRepository.GetUser(channel[1..]);
+					var setting = settings.FirstOrDefault(s => s.ChannelTwitchUserId == channelTwitchUser?.TwitchUserId);
+					if (setting == null)
+					{
+						setting = settings.FirstOrDefault(s => s.ChannelTwitchUserId == null);
+					}
+
+					string repMessage;
+					if (setting != null)
+					{
+						repMessage = FormatCustomRepMessage(twitchUser, setting.SettingValue, response.UpdatedUsers.Concat(response.NotUpdatedUsers));
+					}
+					else
+					{
+						repMessage = MessageTemplates.RepForTwitchUser(twitchUser, response.UpdatedUsers.Concat(response.NotUpdatedUsers));
+					}
+
+
+					TwitchService.SendChatMessage(sourceMessageId, channel, repMessage);
 				}
 				else
 				{
@@ -37,6 +58,29 @@ namespace zsemlebot.services.Commands
 					TwitchService.SendChatMessage(sourceMessageId, channel, message);
 				}
 			}).Start();
+		}
+
+		private string FormatCustomRepMessage(TwitchUser twitchUser, string? formatString, IEnumerable<HotaUser> hotaUsers)
+		{
+			if (formatString == null)
+			{
+				return MessageTemplates.RepForTwitchUser(twitchUser, hotaUsers);
+			}
+
+			string result = formatString;
+
+			int maxRep = hotaUsers.Max(hu => hu.Rep);
+			result = result.Replace(Constants.Settings_CustomRep_MaxRepOption, maxRep.ToString());
+
+			int minRep = hotaUsers.Min(hu => hu.Rep);
+			result = result.Replace(Constants.Settings_CustomRep_MinRepOption, minRep.ToString());
+
+			var userReps = hotaUsers
+					.OrderBy(hu => hu.DisplayName)
+					.Select(hu => $"{hu.DisplayName}({hu.Rep})");
+			result = result.Replace(Constants.Settings_CustomRep_AllRepsOption, string.Join(", ", userReps));
+
+			return result;
 		}
 	}
 }
