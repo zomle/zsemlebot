@@ -47,7 +47,13 @@ namespace zsemlebot.twitch.Log
         {
             WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} < Connected to Twitch.");
         }
-        public void LogPing()
+
+		public void ReconnectRequested()
+		{
+			WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} < Reconnection request from Twitch.");
+		}
+
+		public void LogPing()
         {
             WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} < PING");
         }
