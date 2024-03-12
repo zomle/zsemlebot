@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using zsemlebot.core.Domain;
-using zsemlebot.repository.Models;
 using zsemlebot.services.Log;
 using zsemlebot.twitch;
 
@@ -234,7 +233,7 @@ namespace zsemlebot.services.Commands
 				return;
 			}
 
-			Predicate<ZsemlebotSetting> predicate = p => p.SettingName == providedSettingName &&
+			Predicate<repository.Models.ZsemlebotSetting> predicate = p => p.SettingName == providedSettingName &&
 														p.TargetTwitchUserId == targetUser.TwitchUserId &&
 														(targetChannelUser == null
 															|| p.ChannelTwitchUserId == targetChannelUser.TwitchUserId

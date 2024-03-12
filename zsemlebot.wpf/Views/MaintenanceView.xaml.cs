@@ -14,24 +14,5 @@ namespace zsemlebot.wpf.Views
         {
             InitializeComponent();
         }
-
-		private void BrowseZsemlebotDatabase_Click(object sender, System.Windows.RoutedEventArgs e)
-		{
-			OpenFileDialog dialog = new OpenFileDialog()
-			{
-				DefaultExt = ".db"
-			};
-			var result = dialog.ShowDialog();
-			if (result ?? false)
-			{
-				var vm = DataContext as MaintenanceViewModel;
-				if (vm == null)
-				{
-					throw new InvalidOperationException("DataContext is not assigned");
-				}
-
-				vm.Zsemlebot1DatabasePath = dialog.FileName;
-			}			
-        }
     }
 }

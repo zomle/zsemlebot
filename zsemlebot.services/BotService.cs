@@ -1,71 +1,49 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using zsemlebot.core.Domain;
 using zsemlebot.repository;
 
 namespace zsemlebot.services
 {
 	public class BotService : IDisposable
 	{
-		public void MigrateOldData(string sourceDatabaseFilePath)
+		private TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
+		private BotRepository BotRepository { get { return BotRepository.Instance; } }
+
+		public IReadOnlyList<ZsemlebotSetting> ListSettings()
 		{
-			var oldRepository = new OldBotRepository(sourceDatabaseFilePath);
+			var settings = BotRepository.ListZsemlebotSettings(p => true);
 
-
-			var oldTwitchUsers = oldRepository.ListTwitchUsers();
-			foreach (var user in oldTwitchUsers)
+			var result = new List<ZsemlebotSetting>();
+			foreach (var setting in settings)
 			{
-				TwitchRepository.Instance.UpdateTwitchUserName(user.UserId, user.DisplayName);
+				var user = setting.TargetTwitchUserId == null ? null : TwitchRepository.GetUser(setting.TargetTwitchUserId.Value);
+				var channel = setting.ChannelTwitchUserId == null ? null : TwitchRepository.GetUser(setting.ChannelTwitchUserId.Value);
+
+				result.Add(new ZsemlebotSetting(user, channel, setting.SettingName, setting.SettingValue));
 			}
 
-			var oldHotaUsers = oldRepository.ListHotaUsers();
-			foreach (var user in oldHotaUsers)
+			return result;
+		}
+
+		public IReadOnlyList<TwitchUser> ListJoinedChannels()
+		{
+			var twitchUsers = BotRepository.ListJoinedChannels();
+
+			var result = new List<TwitchUser>();
+			foreach (var twitchUser in twitchUsers)
 			{
-				var newUser = new core.Domain.HotaUser(user.UserId, user.UserName, user.UserElo, 0, null, user.LastUpdatedAtUtc, null, false);
-				HotaRepository.Instance.UpdateHotaUser(newUser);
+				var tmp = new TwitchUser(twitchUser.TwitchUserId, twitchUser.DisplayName);
+				result.Add(tmp);
 			}
+			return result;
+		}
 
-			var oldJoinedChannels = oldRepository.ListJoinedChannels();
-			foreach (var channel in oldJoinedChannels)
-			{
-				var userName = channel.Name[1..];
-				var newUser = TwitchRepository.Instance.GetUser(userName);
-
-				if (newUser != null)
-				{
-					BotRepository.Instance.AddJoinedChannel(newUser.TwitchUserId);
-				}
-				else
-				{
-					throw new Exception($"Can't find user: '{userName}'");
-				}
-			}
-
-			var oldUserLinks = oldRepository.ListUserLinks();
-			foreach (var link in oldUserLinks)
-			{
-				var twitchUser = TwitchRepository.Instance.GetUser(link.TwitchUserId);
-				if (twitchUser == null)
-				{
-					continue;
-				}
-
-				var hotaUser = HotaRepository.Instance.GetUser(link.HotaUserId);
-				if (hotaUser == null)
-				{
-					continue;
-				}
-
-				var links = BotRepository.Instance.GetLinksForTwitchId(link.TwitchUserId);
-				if (links != null)
-				{
-					if (links.LinkedHotaUsers.Any(hu => hu.HotaUserId == link.HotaUserId))
-					{
-						continue;
-					}
-				}
-
-				BotRepository.Instance.AddTwitchHotaUserLink(link.TwitchUserId, link.HotaUserId);
-			}
+		public IReadOnlyList<TwitchUserLinks> ListLinkedUsers()
+		{
+			var userLinks = BotRepository.ListUserLinks();
+			return userLinks;
 		}
 
 		#region IDisposable implementation
@@ -89,6 +67,7 @@ namespace zsemlebot.services
 			Dispose(disposing: true);
 			GC.SuppressFinalize(this);
 		}
+
 		#endregion
 	}
 }

@@ -9,29 +9,92 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" >
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <Label Grid.Column="0"  Content="Zsemlebot1 database"/>
-            <TextBox Grid.Column="1" Margin="3" Text="{Binding Zsemlebot1DatabasePath}"></TextBox>
-            <Button Grid.Column="2" Margin="5" Padding="8,0" Click="BrowseZsemlebotDatabase_Click">...</Button>
-            <Button Grid.Column="3" Margin="5" Padding="2,0" Command="{Binding MigrateUsersCommand}">Migrate users</Button>
-        </Grid>
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal">
-            <Label>Status:</Label>
-            <TextBlock VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=Status}"></TextBlock>
-            
-            <Label Margin="30,0,0,0">Last message received at:</Label>
-            <TextBlock VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=LastMessageReceivedAt}"></TextBlock>
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Grid.Column="3" Margin="5" Padding="3" Command="{Binding RefreshViewCommand}">Refresh view</Button>
         </StackPanel>
+
+        <TabControl Grid.Row="1" >
+            <TabItem Header="Joined Channels">
+                <ListView ItemsSource="{Binding Path=JoinedChannels}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Channel" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Channel}" FontWeight="Bold" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </TabItem>
+            <TabItem Header="Linked users">
+                <ListView ItemsSource="{Binding Path=LinkedTwitchUsers}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Twitch User" Width="180">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TwitchName}" HorizontalAlignment="Right"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="Hota User" Width="180">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding HotaName}" HorizontalAlignment="Right"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </TabItem>
+            <TabItem Header="Settings">
+                <ListView ItemsSource="{Binding Path=Settings}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Target Twitch User" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TargetTwitchUser}" HorizontalAlignment="Right"/>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="Target Channel" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding TargetChannel}" FontWeight="Bold" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="SettingName" Width="150">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SettingName}" FontWeight="Bold" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="SettingValue" Width="310">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding SettingValue}" />
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </TabItem>
+        </TabControl>
+        
     </Grid>
 </UserControl>

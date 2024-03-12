@@ -44,6 +44,36 @@ namespace zsemlebot.repository
 					.ToList();
 		}
 
+		public IReadOnlyList<TwitchUserLinks> ListUserLinks()
+		{
+			var result = new List<TwitchUserLinks>();
+
+			foreach (var linkKv in LinksByTwitchUserId)
+			{
+				var twitchUser = TwitchRepository.Instance.GetUser(linkKv.Key);
+				if (twitchUser == null)
+				{
+					continue;
+				}
+
+				var hotaUsers = new List<HotaUser>();
+				foreach (var links in linkKv.Value)
+				{
+					var hotaUser = HotaRepository.Instance.GetUser(links.HotaUserId);
+					if (hotaUser == null)
+					{
+						continue;
+					}
+
+					hotaUsers.Add(hotaUser);
+				}
+
+				result.Add(new TwitchUserLinks(twitchUser, hotaUsers));
+			}
+
+			return result;
+		}
+
 		public void AddJoinedChannel(int twitchUserId)
 		{
 			if (JoinedChannels.Any(jc => jc.TwitchUserId == twitchUserId))
@@ -71,7 +101,7 @@ namespace zsemlebot.repository
 		public IEnumerable<TwitchUserData> ListJoinedChannels()
 		{
 			var userData = Query<TwitchUserData>($"SELECT tu.[TwitchUserId], tu.[DisplayName] " +
-												$"FROM [{JoinedChannelsTableName}] jc" +
+												$"FROM [{JoinedChannelsTableName}] jc " +
 												$"JOIN [{TwitchUserDataTableName}] tu on jc.[TwitchUserId] = tu.[TwitchUserId];");
 			return userData;
 		}
@@ -117,7 +147,7 @@ namespace zsemlebot.repository
 				EnqueueWorkItem(@$"UPDATE [{ZsemlebotSettingsTableName}] 
 									SET [SettingValue] = @settingValue 
 									WHERE [TargetTwitchUserId] {(targetTwitchUserId == null ? "IS NULL" : "= @targetTwitchUserId")}
-										AND [ChannelTwitchUserId] {(channelTwitchUserId  == null ? "IS NULL": "= @channelTwitchUserId")}
+										AND [ChannelTwitchUserId] {(channelTwitchUserId == null ? "IS NULL" : "= @channelTwitchUserId")}
 										AND [SettingName] = @settingName;", param);
 			}
 		}
