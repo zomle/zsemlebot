@@ -29,7 +29,7 @@ namespace zsemlebot.services.Commands
 			bool isUserIgnored = TwitchRepository.IsUserOnIgnoreList(sender.TwitchUserId);
 			if (isUserIgnored)
 			{
-				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"User on ignore list tried to use a command. User: {sender.DisplayName} @ {channel}. Command: {parameters}");
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"User on ignore list tried to use a command. User: {sender.DisplayName} @ {channel}. Command: {Command} {parameters}");
 				return;
 			}
 
@@ -45,10 +45,34 @@ namespace zsemlebot.services.Commands
 				TwitchService.RegisterUserCommandUsage(channel, sender.DisplayName);
 			}
 
+			if (!IsCommandEnabledForChannel(channel, Command))
+			{
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"User tried to use a disabled command. User: {sender.DisplayName} @ {channel}. Command: {Command} {parameters}");
+				return;
+			}
+
 			HandleCore(sourceMessageId, channel, sender, parameters);			
 		}
 
 		protected abstract void HandleCore(string? sourceMessageId, string channel, MessageSource sender, string? parameters);
+
+		protected bool IsCommandEnabledForChannel(string channel, string command)
+		{
+			var channelTwitchUser = TwitchRepository.GetUser(channel[1..]);
+			if (channelTwitchUser == null)
+			{
+				return true;
+			}
+
+			var settings = BotRepository.ListZsemlebotSettings(p => p.ChannelTwitchUserId == channelTwitchUser.TwitchUserId && p.TargetTwitchUserId == null && p.SettingName == command);
+			if (settings.Count == 0)
+			{
+				return true;
+			}
+
+			var setting = settings[0];
+			return setting.SettingValue == Constants.Settings_Enable;
+		}
 
 		protected (TwitchUser?, IReadOnlyList<HotaUser>) ListHotaUsers(string channel, string? parameters)
 		{

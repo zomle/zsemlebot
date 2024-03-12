@@ -290,6 +290,7 @@ namespace zsemlebot.services
 				Constants.Command_Rep => new RepCommand(this, HotaService),
 				Constants.Command_Streak => new StreakCommand(this, HotaService),
 				Constants.Command_Today => new TodayCommand(this, HotaService),
+				Constants.Command_Zsemlebot => new ZsemlebotCommand(this, HotaService),
 				_ => null,
 			};
 

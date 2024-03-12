@@ -27,6 +27,15 @@ namespace zsemlebot.services
 		public const string Command_Channel = "!channel";
 
 		/// <summary>
+		/// Usage: !zsemlebot <enable|disable> <command>
+		/// Usage: !zsemlebot set <option> <newvalue>
+		/// Usage: !zsemlebot unset <option>
+		/// Usage for admin: !zsemlebot setfor <targetchannel> <targetuser> <option> <newvalue>
+		/// Usage for admin: !zsemlebot unsetfor <targetchannel> <targetuser> <option>
+		/// </summary>
+		public const string Command_Zsemlebot = "!zsemlebot";
+
+		/// <summary>
 		/// Usage: !leave <twitchname>
 		/// </summary>
 		public const string Command_Leave = "!leave";
@@ -100,5 +109,11 @@ namespace zsemlebot.services
 		/// Time window that is checked against number of commands sent.
 		/// </summary>
 		public static readonly TimeSpan SpamProtection_TimeWindow = TimeSpan.FromSeconds(5);
+
+		public const string Settings_TimeZone = "timezone";
+		public const string Settings_CustomElo = "customelo";
+
+		public const string Settings_Enable = "enable";
+		public const string Settings_Disable = "disable";
 	}
 }

@@ -30,7 +30,7 @@ namespace zsemlebot.wpf
             BotService = new BotService();
 
             DataContext = new MainViewModel(TwitchService, HotaService, BotService);
-        }
+		}
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {

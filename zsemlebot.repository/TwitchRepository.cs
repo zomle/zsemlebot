@@ -117,7 +117,7 @@ namespace zsemlebot.repository
 
                 EnqueueWorkItem(@$"UPDATE [{TwitchUserDataTableName}] 
                             SET [DisplayName] = @newName 
-                            WHERE [TwitchUserId] = @id;", new {id, newName });
+                            WHERE [TwitchUserId] = @id;", new { id, newName });
             }
             else
             {

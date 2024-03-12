@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using zsemlebot.core.Domain;
+using zsemlebot.repository.Models;
 
 namespace zsemlebot.services
 {
@@ -39,6 +40,22 @@ namespace zsemlebot.services
 		{
 			return $"{Constants.Command_Channel} was incorrectly formatted. Usage: {Constants.Command_Channel} <add|del> <#channelname>";
 		}
+
+		public static string ZsemlebotInvalidMessage()
+		{
+			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Check documentation for details.";
+		}
+
+		public static string ZsemlebotInvalidOptionMessage(string providedOption, string[] allOptions)
+		{
+			return $"{Constants.Command_Zsemlebot} was provided an invalid option: {providedOption}. Valid options: {string.Join(", ", allOptions)}";
+		}
+
+		public static string ZsemlebotInvalidCommandMessage(string providedCommand, string[] allCommands)
+		{
+			return $"{Constants.Command_Zsemlebot} was provided an invalid command: {providedCommand}. Valid commands: {string.Join(", ", allCommands)}";
+		}
+
 		public static string IgnoreInvalidMessage()
 		{
 			return $"{Constants.Command_Ignore} was incorrectly formatted. Usage: {Constants.Command_Ignore} <add|del> <twitch user> or {Constants.Command_Ignore} list";
@@ -307,6 +324,55 @@ namespace zsemlebot.services
 		public static string UserRemovedFromIgnoreList(string userName)
 		{
 			return $"User removed from the ignore list: {userName}";
+		}
+
+		public static string ZsemlebotInvalidSetForMessage()
+		{
+			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Correct syntad: {Constants.Command_Zsemlebot} setfor <#targetchannel> <targetuser> <option> <newvalue>.";
+		}
+
+		public static string ZsemlebotInvalidUnSetForMessage()
+		{
+			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Correct syntad: {Constants.Command_Zsemlebot} unsetfor <#targetchannel> <targetuser> <option> <newvalue>.";
+		}
+
+		public static string ZsemlebotGetSetting(IReadOnlyList<IReadOnlyZsemlebotSetting> settings)
+		{
+			var settingTexts = settings
+				.OrderBy(s => s.SettingName)
+				.Select(s => $"{(s.ChannelTwitchUserId == null ? "(global)" : "")}{s.SettingName}='{s.SettingValue}'");
+
+			return $"Existing settings: {string.Join("; ", settingTexts)}";
+		}
+
+		public static string ZsemlebotNoSettingsFound()
+		{
+			return $"No settings found.";
+		}
+
+		public static string ZsemlebotSettingRemoved(string option)
+		{
+			return $"Setting value for '{option}' is removed.";
+		}
+
+		public static string ZsemlebotSettingUpdated(string option)
+		{
+			return $"Setting value for '{option}' is updated.";
+		}
+
+		public static string ZsemlebotCommandDisabled(string command)
+		{
+			return $"The '{command}' command is now disabled.";
+		}
+
+		public static string ZsemlebotCommandEnabled(string command)
+		{
+			return $"The '{command}' command is now enabled.";
+		}
+
+		public static string ZsemlebotInvalidTimeZone(string providedTimeZone)
+		{
+			return $"The provided timezone is invalid: '{providedTimeZone}'. Valid format: utc[+-]<hour>[:<mins>]. E.g.: utc+5 or utc-6:30";
 		}
 	}
 }

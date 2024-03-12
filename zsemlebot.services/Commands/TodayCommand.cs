@@ -35,9 +35,20 @@ namespace zsemlebot.services.Commands
 
 		private void HandleTodayCommandQueryCurrentChannel(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
 		{
-			var queriedHotaUsers = ListHotaUsers(channel, null);
+			var (twitchUser, queriedHotaUsers) = ListHotaUsers(channel, null);
 
-			HandleTodayCommandForHotaUsers(sourceMessageId, channel, channel[1..], queriedHotaUsers.Item2);
+			var offset = TimeSpan.Zero;
+			if (twitchUser != null)
+			{
+				var settings = BotRepository.ListZsemlebotSettings(p => p.ChannelTwitchUserId == twitchUser.TwitchUserId && p.SettingName == Constants.Settings_TimeZone);
+				var setting = settings.FirstOrDefault();
+				if (setting != null)
+				{
+					offset = GetTimeOffset(setting.SettingValue ?? "+00:00");
+				}
+			}
+
+			HandleTodayCommandForHotaUsers(sourceMessageId, channel, channel[1..], queriedHotaUsers, offset);
 		}
 
 		private void HandleTodayCommandQueryOtherUser(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
@@ -59,10 +70,32 @@ namespace zsemlebot.services.Commands
 				queriedHotaUsers.Add(hotaUser);
 			}
 
-			HandleTodayCommandForHotaUsers(sourceMessageId, channel, parameters, queriedHotaUsers);
+			var offset = TimeSpan.Zero;
+			if (twitchUser != null)
+			{
+				var settings = BotRepository.ListZsemlebotSettings(p => p.ChannelTwitchUserId == twitchUser.TwitchUserId && p.SettingName == Constants.Settings_TimeZone);
+				var setting = settings.FirstOrDefault();
+				if (setting != null)
+				{
+					offset = GetTimeOffset(setting.SettingValue ?? "+00:00");
+				}
+			}
+
+			HandleTodayCommandForHotaUsers(sourceMessageId, channel, parameters, queriedHotaUsers, offset);
 		}
 
-		private void HandleTodayCommandForHotaUsers(string? sourceMessageId, string channel, string queriedUser, IReadOnlyList<HotaUser> hotaUsers)
+		private TimeSpan GetTimeOffset(string value)
+		{
+			var pm = value[0];
+			var hours = int.Parse(value[1..3]);
+			var mins = int.Parse(value[4..6]);
+
+			hours = (pm == '+' ? 1 : -1) * hours;
+
+			return new TimeSpan(hours, mins, 0);
+		}
+
+		private void HandleTodayCommandForHotaUsers(string? sourceMessageId, string channel, string queriedUser, IReadOnlyList<HotaUser> hotaUsers, TimeSpan timeZoneOffset)
 		{
 			if (hotaUsers.Count == 0)
 			{
@@ -82,6 +115,8 @@ namespace zsemlebot.services.Commands
 				int accountCount = 0;
 				int currentElo = 0;
 
+				var currentDate = (DateTime.UtcNow + timeZoneOffset).Date;
+
 				foreach (var oldUserData in hotaUsers)
 				{
 					var hotaUser = HotaRepository.GetUser(oldUserData.HotaUserId);
@@ -93,7 +128,7 @@ namespace zsemlebot.services.Commands
 					int relevantGamesBefore = relevantGames.Count;
 					foreach (var gameEntry in hotaUser.GameHistory.Values.OrderBy(g => g.GameTimeInUtc))
 					{
-						if (gameEntry.GameTimeInUtc.Date != DateTime.UtcNow.Date)
+						if ((gameEntry.GameTimeInUtc + timeZoneOffset).Date != currentDate)
 						{
 							continue;
 						}

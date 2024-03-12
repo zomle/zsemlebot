@@ -18,6 +18,7 @@ namespace zsemlebot.repository
 		protected const string TwitchHotaUserLinkTableName = "TwitchHotaUserLink";
 		protected const string TwitchHotaUserLinkRequestTableName = "TwitchHotaUserLinkRequest";
 		protected const string TwitchUserIgnoreListTableName = "TwitchUserIgnoreList";
+		protected const string ZsemlebotSettingsTableName = "ZsemlebotSettings";
 
 		private static readonly Queue<DatabaseWorkItem> WorkItemQueue;
 		private static readonly object padlock;
@@ -49,12 +50,13 @@ namespace zsemlebot.repository
 
 		private void CreateTables()
 		{
-			ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{ChannelSettingsTableName}]
+			ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{ZsemlebotSettingsTableName}]
 				(
 					[Id] INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-					[ChannelName] TEXT NOT NULL,
+					[TargetTwitchUserId] INTEGER,
+					[ChannelTwitchUserId] INTEGER,
 					[SettingName] TEXT NOT NULL,
-					[SettingValue] TEXT NOT NULL
+					[SettingValue] TEXT
 				)");
 
 			ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{JoinedChannelsTableName}]
@@ -156,7 +158,7 @@ namespace zsemlebot.repository
 		{
 			using var connection = GetConnectionStatic();
 			using var transaction = connection.BeginTransaction();
-
+			
 			foreach (var workItem in workItems)
 			{
 				connection.Execute(workItem.Query, workItem.Parameters, transaction);
