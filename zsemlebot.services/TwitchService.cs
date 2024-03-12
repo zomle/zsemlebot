@@ -37,7 +37,10 @@ namespace zsemlebot.services
         }
         #endregion
 
-        private HotaService HotaService { get; }
+		public DateTime LastMessageReceivedAt { get; private set; }
+		public TwitchStatus CurrentStatus { get; private set; }
+
+		private HotaService HotaService { get; }
 
         private IrcClient? Client { get; set; }
         private Thread HandleMessagesThread { get; set; }
@@ -288,6 +291,8 @@ namespace zsemlebot.services
 				Constants.Command_LinkMe => new LinkMeCommand(this, HotaService),
 				Constants.Command_Opp => new OppCommand(this, HotaService),
 				Constants.Command_Rep => new RepCommand(this, HotaService),
+				Constants.Command_Say => new SayCommand(this, HotaService),
+				Constants.Command_Status => new StatusCommand(this, HotaService),
 				Constants.Command_Streak => new StreakCommand(this, HotaService),
 				Constants.Command_Today => new TodayCommand(this, HotaService),
 				Constants.Command_Zsemlebot => new ZsemlebotCommand(this, HotaService),
@@ -299,11 +304,15 @@ namespace zsemlebot.services
 
 		private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
         {
-            messageReceived?.Invoke(sender, e);
+			LastMessageReceivedAt = DateTime.Now;
+
+			messageReceived?.Invoke(sender, e);
         }
 
         private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
         {
+			CurrentStatus = e.NewStatus;
+
             statusChanged?.Invoke(sender, e);
 
             if (e.NewStatus == TwitchStatus.Authenticated)

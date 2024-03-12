@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using zsemlebot.core.Domain;
+using zsemlebot.core.Enums;
 using zsemlebot.repository.Models;
 
 namespace zsemlebot.services
@@ -328,12 +329,16 @@ namespace zsemlebot.services
 
 		public static string ZsemlebotInvalidSetForMessage()
 		{
-			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Correct syntad: {Constants.Command_Zsemlebot} setfor <#targetchannel> <targetuser> <option> <newvalue>.";
+			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Correct syntax: {Constants.Command_Zsemlebot} setfor <#targetchannel> <targetuser> <option> <newvalue>";
 		}
 
 		public static string ZsemlebotInvalidUnSetForMessage()
 		{
-			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Correct syntad: {Constants.Command_Zsemlebot} unsetfor <#targetchannel> <targetuser> <option> <newvalue>.";
+			return $"{Constants.Command_Zsemlebot} was incorrectly formatted. Correct syntax: {Constants.Command_Zsemlebot} unsetfor <#targetchannel> <targetuser> <option> <newvalue>";
+		}
+		public static string SayInvalidFormat()
+		{
+			return $"{Constants.Command_Say} was incorrectly formatted. Correct syntax: {Constants.Command_Say} <#targetchannel> <message>";
 		}
 
 		public static string ZsemlebotGetSetting(IReadOnlyList<IReadOnlyZsemlebotSetting> settings)
@@ -373,6 +378,11 @@ namespace zsemlebot.services
 		public static string ZsemlebotInvalidTimeZone(string providedTimeZone)
 		{
 			return $"The provided timezone is invalid: '{providedTimeZone}'. Valid format: utc[+-]<hour>[:<mins>]. E.g.: utc+5 or utc-6:30";
+		}
+
+		public static string StatusMessage(TwitchStatus twitchStatus, DateTime twitchLastMessageAt, HotaClientStatus hotaStatus, DateTime hotaLastMessageAt)
+		{
+			return $"Status: Twitch: {twitchStatus}; last message at: {twitchLastMessageAt:yyyy-MM-ss HH:mm:ss} ({(DateTime.Now - twitchLastMessageAt).TotalSeconds:0.0} secs ago). Hota: {hotaStatus}; last message at: {hotaLastMessageAt:yyyy-MM-ss HH:mm:ss} ({ (DateTime.Now - hotaLastMessageAt).TotalSeconds:0.0} secs ago)";
 		}
 	}
 }

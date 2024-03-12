@@ -48,6 +48,9 @@ namespace zsemlebot.services
 		}
 		#endregion
 
+		public DateTime LastMessageReceivedAt { get; private set; }
+		public HotaClientStatus CurrentStatus { get; private set; }
+
 		private Dictionary<uint, HotaUser> OnlineUsers { get; }
 		private HotaGameDirectory GameDirectory { get; }
 		private LobbyClient? Client { get; set; }
@@ -688,6 +691,8 @@ namespace zsemlebot.services
 
 		private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
 		{
+			LastMessageReceivedAt = DateTime.Now;
+
 			messageReceived?.Invoke(sender, e);
 		}
 
@@ -706,6 +711,8 @@ namespace zsemlebot.services
 
 		private void Client_StatusChanged(object? sender, HotaStatusChangedArgs e)
 		{
+			CurrentStatus = e.NewStatus;
+
 			if (e.NewStatus == HotaClientStatus.Authenticated)
 			{
 				PauseUpdateNotifications = true;

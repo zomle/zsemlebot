@@ -5,10 +5,19 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
+		/// Usage: !status
+		/// </summary>
+		public const string Command_Status = "!status";
+
+		/// <summary>
+		/// Usage: !say <#targetchannel> <message>
+		/// </summary>
+		public const string Command_Say = "!say";
+
+		/// <summary>
 		/// Usage: !ignore <add|del> <twitchusername>
 		/// Usage: !ignore list
 		/// </summary>
-		/// 
 		public const string Command_Ignore = "!ignore";
 
 		/// <summary>
