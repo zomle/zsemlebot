@@ -306,6 +306,7 @@ namespace zsemlebot.services
 				Constants.Command_Status => new StatusCommand(this, HotaService),
 				Constants.Command_Streak => new StreakCommand(this, HotaService),
 				Constants.Command_Today => new TodayCommand(this, HotaService),
+				Constants.Command_UnLinkMe => new UnlinkMeCommand(this, HotaService),
 				Constants.Command_Zsemlebot => new ZsemlebotCommand(this, HotaService),
 				_ => null,
 			};
@@ -332,6 +333,13 @@ namespace zsemlebot.services
 
                 Client?.JoinChannel(channel);
                 Client?.SendPrivMsg(channel, "Arrived");
+
+				var joinedChannels = BotRepository.Instance.ListJoinedChannels();
+				foreach (var joinedChannel in joinedChannels)
+				{
+					var channelName = $"#{joinedChannel.DisplayName.ToLower()}";
+					Client?.JoinChannel(channelName);
+				}
             }
         }
 

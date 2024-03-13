@@ -5,14 +5,47 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
+		/// Usage: !channel <add|del> <#channelname>
+		/// </summary>
+		public const string Command_Channel = "!channel";
+
+		/// <summary>
+		/// Usage: !elo [<twitchname>|<hotaname>]
+		/// </summary>
+		public const string Command_Elo = "!elo";
+
+		/// <summary>
+		/// Usage 1: !game 
+		/// Usage 2: !game edit [template] <hotauser1> [color] [faction] [trade] <hotauser2> [color] [faction] [trade]
+		/// Usage 3: !game <twitch/hota user>
+		/// </summary>
+		public const string Command_Game = "!game";
+
+		/// <summary>
+		/// Usage: !ignore <add|del> <twitchusername>
+		/// Usage: !ignore list
+		/// </summary>
+		public const string Command_Ignore = "!ignore";
+
+		/// <summary>
 		/// Usage: !joinme <twitchname>
 		/// </summary>
 		public const string Command_JoinMe = "!joinme";
 
 		/// <summary>
-		/// Usage: !status
+		/// Usage: !leave <twitchname>
 		/// </summary>
-		public const string Command_Status = "!status";
+		public const string Command_Leave = "!leave";
+
+		/// <summary>
+		/// Usage: !link <add|del> twitch=<twitchname> hota=<hotaname>
+		/// </summary>
+		public const string Command_Link = "!link";
+
+		/// <summary>
+		/// Usage: !linkme <twitchname>
+		/// </summary>
+		public const string Command_LinkMe = "!linkme";
 
 		/// <summary>
 		/// Usage: !say <#targetchannel> <message>
@@ -20,10 +53,19 @@ namespace zsemlebot.services
 		public const string Command_Say = "!say";
 
 		/// <summary>
-		/// Usage: !ignore <add|del> <twitchusername>
-		/// Usage: !ignore list
+		/// Usage: !opp
 		/// </summary>
-		public const string Command_Ignore = "!ignore";
+		public const string Command_Opp = "!opp";
+
+		/// <summary>
+		/// Usage: !rep [<twitchname>|<hotaname>]
+		/// </summary>
+		public const string Command_Rep = "!rep";
+
+		/// <summary>
+		/// Usage: !status
+		/// </summary>
+		public const string Command_Status = "!status";
 
 		/// <summary>
 		/// Usage: !streak [twitchname|hotaname]
@@ -36,9 +78,9 @@ namespace zsemlebot.services
 		public const string Command_Today = "!today";
 
 		/// <summary>
-		/// Usage: !channel <add|del> <#channelname>
+		/// Usage: !unlinkme <hotaname>
 		/// </summary>
-		public const string Command_Channel = "!channel";
+		public const string Command_UnLinkMe = "!unlinkme";
 
 		/// <summary>
 		/// Usage: !zsemlebot <enable|disable> <command>
@@ -48,43 +90,6 @@ namespace zsemlebot.services
 		/// Usage for admin: !zsemlebot unsetfor <targetchannel> <targetuser> <option>
 		/// </summary>
 		public const string Command_Zsemlebot = "!zsemlebot";
-
-		/// <summary>
-		/// Usage: !leave <twitchname>
-		/// </summary>
-		public const string Command_Leave = "!leave";
-
-		/// <summary>
-		/// Usage 1: !game 
-		/// Usage 2: !game edit [template] <hotauser1> [color] [faction] [trade] <hotauser2> [color] [faction] [trade]
-		/// Usage 3: !game <twitch/hota user>
-		/// </summary>
-		public const string Command_Game = "!game";
-
-		/// <summary>
-		/// Usage: !linkme <twitchname>
-		/// </summary>
-		public const string Command_LinkMe = "!linkme";
-
-		/// <summary>
-		/// Usage: !link <add|del> twitch=<twitchname> hota=<hotaname>
-		/// </summary>
-		public const string Command_Link = "!link";
-
-		/// <summary>
-		/// Usage: !elo [<twitchname>|<hotaname>]
-		/// </summary>
-		public const string Command_Elo = "!elo";
-
-		/// <summary>
-		/// Usage: !opp
-		/// </summary>
-		public const string Command_Opp = "!opp";
-
-		/// <summary>
-		/// Usage: !rep [<twitchname>|<hotaname>]
-		/// </summary>
-		public const string Command_Rep = "!rep";
 
 		/// <summary>
 		/// This is how much time we will wait before responding to user with the elo value

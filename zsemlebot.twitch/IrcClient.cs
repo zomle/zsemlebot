@@ -14,8 +14,10 @@ namespace zsemlebot.twitch
 	public class IrcClient : IDisposable
 	{
 		private readonly TimeSpan PingFrequency = TimeSpan.FromSeconds(30);
-		private readonly TimeSpan RateLimitWindowSize = TimeSpan.FromSeconds(30);
-		private readonly int RateLimitMaxMessageCount = 20;
+		private readonly TimeSpan MessageRateLimitWindowSize = TimeSpan.FromSeconds(30);
+		private readonly int MessageRateLimitMaxMessageCount = 20;
+		private readonly TimeSpan JoinRateLimitWindowSize = TimeSpan.FromSeconds(10);
+		private readonly int JoinRateLimitMaxMessageCount = 20;
 
 		#region Events
 		private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -73,8 +75,13 @@ namespace zsemlebot.twitch
 		private DateTime LastPingSentAt { get; set; }
 
 		private Queue<OutgoingMessage> OutgoingMessageQueue { get; set; }
-		private DateTime RateLimitWindowStart { get; set; }
+		private DateTime MessageRateLimitWindowStart { get; set; }
 		private int MessagesSentInRateLimitWindow { get; set; }
+
+		private Queue<OutgoingMessage> JoinChannelQueue { get; set; }
+		private DateTime JoinRateLimitWindowStart { get; set; }
+		private int JoinsSentInRateLimitWindow { get; set; }
+
 
 		private static readonly object padlock = new object();
 
@@ -82,6 +89,8 @@ namespace zsemlebot.twitch
 		{
 			IncomingMessageQueue = new Queue<Message>();
 			OutgoingMessageQueue = new Queue<OutgoingMessage>();
+			JoinChannelQueue =new Queue<OutgoingMessage>();
+
 			Status = TwitchStatus.Initialized;
 
 			RawLogger = TwitchRawLogger.Null;
@@ -108,6 +117,7 @@ namespace zsemlebot.twitch
 				}
 
 				OutgoingMessageQueue.Clear();
+				JoinChannelQueue.Clear();
 
 				SendThread = new Thread(SendThreadWorker);
 				SendThread.Start();
@@ -161,7 +171,10 @@ namespace zsemlebot.twitch
 				throw new ArgumentException("Channel must start with a '#'", nameof(channel));
 			}
 
-			SendMessage($"JOIN {channel}");
+			lock (padlock)
+			{
+				JoinChannelQueue.Enqueue(new OutgoingMessage($"JOIN {channel}", null));
+			}
 			EventLogger.LogJoinChannel(channel);
 		}
 
@@ -202,14 +215,29 @@ namespace zsemlebot.twitch
 			}
 		}
 
-		private bool CanSendMessage()
+		private bool CanSendJoin()
 		{
-			if (DateTime.Now - RateLimitWindowStart > RateLimitWindowSize)
+			if (DateTime.Now - JoinRateLimitWindowStart > JoinRateLimitWindowSize)
 			{
 				return true;
 			}
 
-			if (MessagesSentInRateLimitWindow < RateLimitMaxMessageCount)
+			if (JoinsSentInRateLimitWindow < JoinRateLimitMaxMessageCount)
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+		private bool CanSendMessage()
+		{
+			if (DateTime.Now - MessageRateLimitWindowStart > MessageRateLimitWindowSize)
+			{
+				return true;
+			}
+
+			if (MessagesSentInRateLimitWindow < MessageRateLimitMaxMessageCount)
 			{
 				return true;
 			}
@@ -418,48 +446,109 @@ namespace zsemlebot.twitch
 			{
 				while (true)
 				{
-					if (!CanSendMessage())
+					if (JoinChannelQueue.Count > 0)
 					{
-						Thread.Sleep(500);
-						continue;
-					}
-
-					OutgoingMessage? outgoingMessage;
-					bool gotNewMessage = false;
-					lock (padlock)
-					{
-						gotNewMessage = OutgoingMessageQueue.TryDequeue(out outgoingMessage);
-					}
-
-					if (!gotNewMessage || outgoingMessage == null)
-					{
-						Thread.Sleep(500);
-						continue;
-					}
-
-					try
-					{
-						SendSocketRaw(outgoingMessage);
-
-						if (DateTime.Now - RateLimitWindowStart > RateLimitWindowSize)
+						if (!TrySendJoin())
 						{
-							RateLimitWindowStart = DateTime.Now;
-							MessagesSentInRateLimitWindow = 0;
+							continue;
 						}
+					}
 
-						MessagesSentInRateLimitWindow++;
-					}
-					catch (Exception)
+					if (OutgoingMessageQueue.Count > 0)
 					{
-						Status = TwitchStatus.Disconnected;
+						if (!TrySendMessage())
+						{
+							continue;
+						}
+						
 					}
-					RawLogger.WriteOutgoingMessage(outgoingMessage.LogMessageOverride ?? outgoingMessage.Message);
 				}
 			}
 			catch (Exception)
 			{
 				Status = TwitchStatus.Disconnected;
 			}
+		}
+
+		private bool TrySendJoin()
+		{
+			if (!CanSendJoin())
+			{
+				Thread.Sleep(500);
+				return false;
+			}
+
+			OutgoingMessage? outgoingMessage;
+			bool gotNewMessage = false;
+			lock (padlock)
+			{
+				gotNewMessage = JoinChannelQueue.TryDequeue(out outgoingMessage);
+			}
+
+			if (gotNewMessage && outgoingMessage != null)
+			{
+				try
+				{
+					SendSocketRaw(outgoingMessage);
+
+					if (DateTime.Now - JoinRateLimitWindowStart > JoinRateLimitWindowSize)
+					{
+						JoinRateLimitWindowStart = DateTime.Now;
+						JoinsSentInRateLimitWindow = 0;
+					}
+
+					JoinsSentInRateLimitWindow++;
+				}
+				catch (Exception)
+				{
+					Status = TwitchStatus.Disconnected;
+				}
+
+				RawLogger.WriteOutgoingMessage(outgoingMessage.LogMessageOverride ?? outgoingMessage.Message);
+			}
+
+			return true;
+		}
+
+		private bool TrySendMessage()
+		{
+			if (!CanSendMessage())
+			{
+				Thread.Sleep(500);
+				return false;
+			}
+
+			OutgoingMessage? outgoingMessage;
+			bool gotNewMessage = false;
+			lock (padlock)
+			{
+				gotNewMessage = OutgoingMessageQueue.TryDequeue(out outgoingMessage);
+			}
+
+			if (!gotNewMessage || outgoingMessage == null)
+			{
+				Thread.Sleep(500);
+				return false;
+			}
+
+			try
+			{
+				SendSocketRaw(outgoingMessage);
+
+				if (DateTime.Now - MessageRateLimitWindowStart > MessageRateLimitWindowSize)
+				{
+					MessageRateLimitWindowStart = DateTime.Now;
+					MessagesSentInRateLimitWindow = 0;
+				}
+
+				MessagesSentInRateLimitWindow++;
+			}
+			catch (Exception)
+			{
+				Status = TwitchStatus.Disconnected;
+			}
+			RawLogger.WriteOutgoingMessage(outgoingMessage.LogMessageOverride ?? outgoingMessage.Message);
+			return true;
 		}
 
 		private void SendSocketRaw(OutgoingMessage? outgoingMessage)
