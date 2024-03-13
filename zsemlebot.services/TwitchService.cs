@@ -8,6 +8,7 @@ using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.repository;
 using zsemlebot.services.Commands;
+using zsemlebot.services.Log;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services
@@ -125,8 +126,15 @@ namespace zsemlebot.services
                         continue;
                     }
 
-                    var message = Client.GetNextMessage();
-                    HandleMessage(message);
+					try
+					{
+						var message = Client.GetNextMessage();
+						HandleMessage(message);
+					}
+					catch (Exception e)
+					{
+						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Exception happened while handling event: {e.Message}; {e.StackTrace}");
+					}
                 }
             }
             catch (ThreadInterruptedException)

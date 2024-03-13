@@ -161,7 +161,14 @@ namespace zsemlebot.services
 					while (Client.HasNewEvent())
 					{
 						var newEvent = Client.GetNextEvent();
-						HandleEvent(newEvent);
+						try
+						{
+							HandleEvent(newEvent);
+						}
+						catch (Exception e)
+						{
+							BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Exception happened while handling event: {e.Message}; {e.StackTrace}");
+						}
 					}
 
 					Thread.Sleep(100);
