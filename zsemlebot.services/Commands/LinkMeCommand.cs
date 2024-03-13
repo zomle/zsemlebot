@@ -33,7 +33,15 @@ namespace zsemlebot.services.Commands
 				return;
 			}
 
-			BotRepository.AddTwitchHotaUserLink(sender.TwitchUserId, request.HotaUserId);
+			var existingLinks = BotRepository.GetLinksForTwitchId(sender.TwitchUserId);
+			if (existingLinks != null && existingLinks.LinkedHotaUsers.Any(h => h.HotaUserId == request.HotaUserId))
+			{
+				//link already exist
+			}
+			else
+			{
+				BotRepository.AddTwitchHotaUserLink(sender.TwitchUserId, request.HotaUserId);
+			}
 			BotRepository.DeleteUserLinkRequest(request.HotaUserId, request.TwitchUserName);
 
 			var hotaUser = HotaRepository.GetUser(request.HotaUserId);

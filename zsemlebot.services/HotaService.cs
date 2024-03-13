@@ -65,6 +65,7 @@ namespace zsemlebot.services
 
 		private static HotaRepository HotaRepository { get { return HotaRepository.Instance; } }
 		private static BotRepository BotRepository { get { return BotRepository.Instance; } }
+		private static TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
 
 		private static readonly int[] WaitTimesBetweenReconnect = { 2, 5, 10, 15, 30 };
 
@@ -631,6 +632,13 @@ namespace zsemlebot.services
 			}
 
 			string twitchUserName = parameters;
+
+			var existingLinks = BotRepository.GetLinksForTwitchName(twitchUserName);
+			if (existingLinks != null && existingLinks.LinkedHotaUsers.Any(h => h.HotaUserId == source.HotaUserId))
+			{
+				SendChatMessage(source.HotaUserId, MessageTemplates.UserLinkAlreadyLinked(twitchUserName, source.DisplayName));
+				return;
+			}
 
 			//get existing user link request, if any
 			var existingRequest = BotRepository.GetUserLinkRequest(source.HotaUserId, twitchUserName);
