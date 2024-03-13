@@ -200,7 +200,8 @@ namespace zsemlebot.services
 
 		public void SendChatMessage(string channel, string message)
         {
-            Client?.SendPrivMsg(channel, message);
+			privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, $"({Config.Instance.Twitch.User})", message));
+			Client?.SendPrivMsg(channel, message);
         }
 
         public void SendChatMessage(string? parentMessageId, string channel, string message)
@@ -211,7 +212,8 @@ namespace zsemlebot.services
             }
             else
             {
-                Client?.SendPrivMsg(parentMessageId, channel, message);
+				privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, $"({Config.Instance.Twitch.User})", message));
+				Client?.SendPrivMsg(parentMessageId, channel, message);
             }
         }
 
