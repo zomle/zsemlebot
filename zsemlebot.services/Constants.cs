@@ -5,6 +5,11 @@ namespace zsemlebot.services
     internal static class Constants
     {
 		/// <summary>
+		/// Usage: !joinme <twitchname>
+		/// </summary>
+		public const string Command_JoinMe = "!joinme";
+
+		/// <summary>
 		/// Usage: !status
 		/// </summary>
 		public const string Command_Status = "!status";

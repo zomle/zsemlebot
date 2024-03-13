@@ -296,6 +296,7 @@ namespace zsemlebot.services
 				Constants.Command_Elo => new EloCommand(this, HotaService),
 				Constants.Command_Game => new GameCommand(this, HotaService),
 				Constants.Command_Ignore => new IgnoreCommand(this, HotaService),
+				Constants.Command_JoinMe => new JoinMeCommand(this, HotaService),
 				Constants.Command_Leave => new LeaveCommand(this, HotaService),
 				Constants.Command_Link => new LinkCommand(this, HotaService),
 				Constants.Command_LinkMe => new LinkMeCommand(this, HotaService),

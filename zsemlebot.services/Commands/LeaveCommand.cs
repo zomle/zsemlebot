@@ -30,14 +30,14 @@ namespace zsemlebot.services.Commands
 				return;
 			}
 
-			var targetChannel = parameters;
-			var targetUserName = targetChannel[1..];
+			var targetUserName = parameters;
 			var targetUser = TwitchRepository.GetUser(targetUserName);
 			if (targetUser == null)
 			{
 				return;
 			}
 
+			var targetChannel = $"#{targetUserName}";
 			BotRepository.DeleteJoinedChannel(targetUser.TwitchUserId);
 
 			TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.LeavingChannel(targetChannel));
