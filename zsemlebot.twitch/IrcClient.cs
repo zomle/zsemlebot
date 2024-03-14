@@ -446,6 +446,18 @@ namespace zsemlebot.twitch
 			{
 				while (true)
 				{
+					if (Socket == null)
+					{
+						Status = TwitchStatus.Disconnected;
+						return;
+					}
+
+					if (!Socket.Connected)
+					{
+						Status = TwitchStatus.Disconnected;
+						return;
+					}
+
 					if (JoinChannelQueue.Count > 0)
 					{
 						if (!TrySendJoin())
@@ -460,8 +472,9 @@ namespace zsemlebot.twitch
 						{
 							continue;
 						}
-						
 					}
+
+					Thread.Sleep(100);
 				}
 			}
 			catch (Exception)

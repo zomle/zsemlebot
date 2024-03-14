@@ -27,7 +27,7 @@ namespace zsemlebot.services.Commands
 			if (tokens[0] == "enable")
 			{
 				/// Usage: !zsemlebot <enable|disable> <command>
-				if (!sender.IsBroadcaster || !sender.IsAdmin)
+				if (!sender.IsBroadcaster && !sender.IsAdmin)
 				{
 					return;
 				}
@@ -43,7 +43,7 @@ namespace zsemlebot.services.Commands
 			else if (tokens[0] == "disable")
 			{
 				/// Usage: !zsemlebot <enable|disable> <command>
-				if (!sender.IsBroadcaster || !sender.IsAdmin)
+				if (!sender.IsBroadcaster && !sender.IsAdmin)
 				{
 					return;
 				}
@@ -59,7 +59,7 @@ namespace zsemlebot.services.Commands
 			else if (tokens[0] == "set")
 			{
 				/// Usage: !zsemlebot set <option> <newvalue>
-				if (!sender.IsBroadcaster || !sender.IsAdmin)
+				if (!sender.IsBroadcaster && !sender.IsAdmin)
 				{
 					return;
 				}
@@ -84,7 +84,7 @@ namespace zsemlebot.services.Commands
 			else if (tokens[0] == "unset")
 			{
 				/// Usage: !zsemlebot unset <option>
-				if (!sender.IsBroadcaster || !sender.IsAdmin)
+				if (!sender.IsBroadcaster && !sender.IsAdmin)
 				{
 					return;
 				}
@@ -182,7 +182,7 @@ namespace zsemlebot.services.Commands
 			}
 			else
 			{
-				if (!sender.IsBroadcaster || !sender.IsAdmin)
+				if (!sender.IsBroadcaster && !sender.IsAdmin)
 				{
 					return;
 				}
@@ -195,7 +195,7 @@ namespace zsemlebot.services.Commands
 		private void HandleGetCommand(string? sourceMessageId, string channel, MessageSource sender, string targetChannelName, string targetUserName, string providedSettingName)
 		{
 			TwitchUser? targetChannelUser;
-			if (targetChannelName == "global")
+			if (targetChannelName == "_")
 			{
 				targetChannelUser = null;
 			}
@@ -318,7 +318,7 @@ namespace zsemlebot.services.Commands
 		private void HanelSetUnsetForValue(string? sourceMessageId, string channel, MessageSource sender, string targetChannelName, string targetUserName, string providedOption, string? newValue)
 		{
 			TwitchUser? targetChannelUser;
-			if (targetChannelName == "global")
+			if (targetChannelName == "_")
 			{
 				targetChannelUser = null;
 			}
@@ -338,11 +338,19 @@ namespace zsemlebot.services.Commands
 				}
 			}
 
-			var targetUser = TwitchRepository.GetUser(targetUserName);
-			if (targetUser == null)
+			TwitchUser? targetUser;
+			if (targetUserName == "_")
 			{
-				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.TwitchUserNotFound(targetUserName));
-				return;
+				targetUser = null;
+			}
+			else
+			{
+				targetUser = TwitchRepository.GetUser(targetUserName);
+				if (targetUser == null)
+				{
+					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.TwitchUserNotFound(targetUserName));
+					return;
+				}
 			}
 
 			var allOptions = new[]
