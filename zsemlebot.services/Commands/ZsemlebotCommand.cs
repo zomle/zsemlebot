@@ -381,12 +381,12 @@ namespace zsemlebot.services.Commands
 
 			if (newValue == null)
 			{
-				BotRepository.DeleteZsemlebotSetting(targetUser.TwitchUserId, targetChannelUser?.TwitchUserId, providedOption);
+				BotRepository.DeleteZsemlebotSetting(targetUser?.TwitchUserId, targetChannelUser?.TwitchUserId, providedOption);
 				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingRemoved(providedOption));
 			}
 			else
 			{
-				BotRepository.UpdateZsemlebotSetting(targetUser.TwitchUserId, targetChannelUser?.TwitchUserId, providedOption, newValue);
+				BotRepository.UpdateZsemlebotSetting(targetUser?.TwitchUserId, targetChannelUser?.TwitchUserId, providedOption, newValue);
 				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingUpdated(providedOption));
 			}
 		}

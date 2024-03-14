@@ -293,7 +293,7 @@ namespace zsemlebot.hota
 
 		private void SendSocketRaw(HotaMessageBase message)
 		{
-			if (Socket == null)
+			if (Socket == null || Socket.Connected == false)
 			{
 				return;
 			}
@@ -301,12 +301,19 @@ namespace zsemlebot.hota
 			var package = message.AsDataPackage();
 			PackageLogger.LogPackage(false, package, true);
 
-			int sent = 0;
-			var bytes = package.Content;
-			while (sent != bytes.Length)
+			try
 			{
-				var tmp = Socket.Send(bytes, sent, bytes.Length - sent, SocketFlags.None);
-				sent += tmp;
+				int sent = 0;
+				var bytes = package.Content;
+				while (sent != bytes.Length)
+				{
+					var tmp = Socket.Send(bytes, sent, bytes.Length - sent, SocketFlags.None);
+					sent += tmp;
+				}
+			}
+			catch (Exception e)
+			{
+				
 			}
 		}
 
