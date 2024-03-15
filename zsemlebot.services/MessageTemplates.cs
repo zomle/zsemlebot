@@ -265,29 +265,47 @@ namespace zsemlebot.services
 			return $"Leaving '{targetChannel}' channel.";
 		}
 
-		public static string HistoryTodaySingleAccount(string queriedUser, int wins, int losses, int eloChange, int currentElo)
+		public static string HistoryTodaySingleAccount(string queriedUser, int wins, int losses, int eloChange, int currentElo, TimeSpan timezoneOffset)
 		{ 
 			string endS = queriedUser.EndsWith('s') ? "" : "s";
 			string winPl = wins == 1 ? "" : "s";
 			string losePl = losses == 1 ? "" : "es";
 			string eloDelta = $"{(eloChange > 0 ? "+" : "-")}{Math.Abs(eloChange)}";
 
-			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, {currentElo} total)";
+			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, {currentElo} total; considering {GetTimeZoneFromOffset(timezoneOffset)} timezone)";
 		}
 
-		public static string HistoryTodayMultipleAccount(string queriedUser, int wins, int losses, int eloChange, int accountCount)
+		public static string HistoryTodayMultipleAccount(string queriedUser, int wins, int losses, int eloChange, int accountCount, TimeSpan timezoneOffset)
 		{
 			string endS = queriedUser.EndsWith('s') ? "" : "s";
 			string winPl = wins == 1 ? "" : "s";
 			string losePl = losses == 1 ? "" : "es";
 			string eloDelta = $"{(eloChange > 0 ? "+" : "-")}{Math.Abs(eloChange)}";
 
-			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, on {accountCount} accounts)";
+			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, on {accountCount} accounts; considering {GetTimeZoneFromOffset(timezoneOffset)} timezone)";
 		}
 
-		public static string HistoryTodayNoInfo(string queriedUser)
+		public static string HistoryTodayNoInfo(string queriedUser, TimeSpan timezoneOffset)
 		{
-			return $"Couldn't find any ranked games finished today for {queriedUser}.";
+			return $"Couldn't find any ranked games finished today for {queriedUser} (considering {GetTimeZoneFromOffset(timezoneOffset)} timezone).";
+		}
+
+		private static string GetTimeZoneFromOffset(TimeSpan offset)
+		{
+			var sb = new StringBuilder("UTC");
+			if (offset.Hours == 0 && offset.Minutes == 0)
+			{
+				return sb.ToString();
+			}
+
+			sb.Append(offset.TotalHours < 0 ? '-' : '+');
+			sb.Append(Math.Abs(offset.Hours));
+			if (offset.Minutes != 0) 
+			{
+				sb.Append(':');
+				sb.Append(offset.Minutes.ToString("00"));
+			}
+			return sb.ToString();
 		}
 
 		public static string Streak(string queriedUser, bool winStreak, int streak)

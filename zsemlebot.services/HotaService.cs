@@ -15,7 +15,6 @@ using zsemlebot.services.Log;
 
 namespace zsemlebot.services
 {
-
 	public class HotaService : IDisposable
 	{
 		#region Events
@@ -210,7 +209,7 @@ namespace zsemlebot.services
 			Client?.SendMessage(targetHotaUserId, message);
 		}
 
-		public void UpdadateGameInfo(HotaGame game, string newTemplateName)
+		public void UpdateGameInfo(HotaGame game, string newTemplateName)
 		{
 			GameDirectory.UpdateTemplate(game.GameKey, newTemplateName);
 		}
@@ -452,6 +451,7 @@ namespace zsemlebot.services
 					entry.Player2UserId, entry.Player2OldElo, entry.Player2NewElo);
 
 				entries.Add(newHistoryEntry);
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game history entry: {mainUser.DisplayName} ({evnt.MainHotaUserId.ToHexString()}). Entry: Id: {entry.GameId.ToHexString()}; game time: {entry.GameTimeInUtc:yyyy-MM-dd HH:mm}; outcome: {entry.OutCome}; P1 id: {entry.Player1UserId.ToHexString()}; P1 elo: {entry.Player1OldElo} -> {entry.Player1NewElo}; P2 id: {entry.Player2UserId.ToHexString()}; P2 elo: {entry.Player2OldElo} -> {entry.Player2NewElo}");
 			}
 
 			HotaRepository.UpdateGameHistory(evnt.MainHotaUserId, entries);

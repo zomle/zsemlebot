@@ -117,6 +117,8 @@ namespace zsemlebot.services.Commands
 
 				var currentDate = (DateTime.UtcNow + timeZoneOffset).Date;
 
+				//BotLogger.Instance.LogEvent(BotLogSource.User, $"HandleTodayCommandForHotaUsers(): Current date: {currentDate:yyyy-MM-dd}. Timezone offset: {timeZoneOffset}");
+
 				foreach (var oldUserData in hotaUsers)
 				{
 					var hotaUser = HotaRepository.GetUser(oldUserData.HotaUserId);
@@ -125,10 +127,15 @@ namespace zsemlebot.services.Commands
 						continue;
 					}
 
+					//BotLogger.Instance.LogEvent(BotLogSource.User, $"HandleTodayCommandForHotaUsers(): Current user: {hotaUser.DisplayName}({hotaUser.HotaUserId.ToHexString()}). GameHistoryUpToDate: {hotaUser.GameHistoryUpToDate}");
+
 					int relevantGamesBefore = relevantGames.Count;
 					foreach (var gameEntry in hotaUser.GameHistory.Values.OrderBy(g => g.GameTimeInUtc))
 					{
-						if ((gameEntry.GameTimeInUtc + timeZoneOffset).Date != currentDate)
+						var adjustedGameTime = gameEntry.GameTimeInUtc + timeZoneOffset;
+						//BotLogger.Instance.LogEvent(BotLogSource.User, $"HandleTodayCommandForHotaUsers(): Game Id: {gameEntry.GameId.ToHexString()}; Outcome: {gameEntry.OutCome}; Game time in utc: {gameEntry.GameTimeInUtc:yyyy-MM-dd HH:mm}; adjusted game time: {adjustedGameTime:yyyy-MM-dd HH:mm}");
+
+						if (adjustedGameTime.Date != currentDate)
 						{
 							continue;
 						}
@@ -138,6 +145,7 @@ namespace zsemlebot.services.Commands
 							continue;
 						}
 
+						//BotLogger.Instance.LogEvent(BotLogSource.User, $"HandleTodayCommandForHotaUsers(): Game Id: {gameEntry.GameId.ToHexString()}; Added to result.");
 						relevantGames.Add(gameEntry);
 
 						if (gameEntry.Player1UserId == hotaUser.HotaUserId)
@@ -180,22 +188,24 @@ namespace zsemlebot.services.Commands
 					}
 				}
 
+				//BotLogger.Instance.LogEvent(BotLogSource.User, $"HandleTodayCommandForHotaUsers(): Result count: {relevantGames.Count}");
+
 				if (relevantGames.Count == 0)
 				{
 					//no game history
-					var message = MessageTemplates.HistoryTodayNoInfo(queriedUser);
+					var message = MessageTemplates.HistoryTodayNoInfo(queriedUser, timeZoneOffset);
 					TwitchService.SendChatMessage(sourceMessageId, channel, message);
 				}
 				else if (accountCount > 1)
 				{
 					//multiple accounts are aggregated
-					var message = MessageTemplates.HistoryTodayMultipleAccount(queriedUser, wins, losses, eloChange, accountCount);
+					var message = MessageTemplates.HistoryTodayMultipleAccount(queriedUser, wins, losses, eloChange, accountCount, timeZoneOffset);
 					TwitchService.SendChatMessage(sourceMessageId, channel, message);
 				}
 				else
 				{
 					//single account
-					var message = MessageTemplates.HistoryTodaySingleAccount(queriedUser, wins, losses, eloChange, currentElo);
+					var message = MessageTemplates.HistoryTodaySingleAccount(queriedUser, wins, losses, eloChange, currentElo, timeZoneOffset);
 					TwitchService.SendChatMessage(sourceMessageId, channel, message);
 				}
 			}).Start();

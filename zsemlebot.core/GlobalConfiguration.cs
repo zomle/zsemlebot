@@ -3,8 +3,10 @@ using System.Reflection;
 
 namespace zsemlebot.core
 {
-    public class GlobalConfiguration
+	public class GlobalConfiguration
     {
+		public bool IsTestMode { get; set; }
+
         public string DatabaseFileName { get { return "zsemlebot.db3"; } }
         public string FullDatabaseFilePath { get { return Path.Combine(FullDbDirectory, DatabaseFileName); } }
 

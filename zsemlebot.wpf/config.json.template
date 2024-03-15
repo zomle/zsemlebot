@@ -2,7 +2,8 @@
 	global: {
 		logdirectory: "logs",
 		dbdirectory: "db",
-		dbbackupdirectory: "db_backup"
+		dbbackupdirectory: "db_backup",
+		istestmode: false
 	},
 	twitch: {
 		user: "",

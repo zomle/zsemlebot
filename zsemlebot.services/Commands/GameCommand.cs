@@ -127,7 +127,7 @@ namespace zsemlebot.services.Commands
 			var templateName = GuessTemplate(startCollector.ToString());
 			if (!string.IsNullOrWhiteSpace(templateName))
 			{
-				HotaService.UpdadateGameInfo(game, templateName);
+				HotaService.UpdateGameInfo(game, templateName);
 				game.Template = templateName;
 			}
 

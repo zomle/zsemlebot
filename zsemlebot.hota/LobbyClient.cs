@@ -478,7 +478,7 @@ namespace zsemlebot.hota
 		{
 			AssertType(dataPackage, Constants.MsgTypex98_RankedGameHistory);
 
-			const int GameEntryLength = 0x75;
+			const int GameEntryLength = 0x77;
 			const int PackageHeaderSize = 0x10;
 
 			var allGames = dataPackage.ReadInt(4);
@@ -496,13 +496,13 @@ namespace zsemlebot.hota
 
 				var gameId = dataPackage.ReadUInt(gameEntryStart);
 				var outcome = dataPackage.ReadByte(gameEntryStart + 0xb);
-				var timestamp = dataPackage.ReadUInt(gameEntryStart + 0x15);
-				var player1Id = dataPackage.ReadUInt(gameEntryStart + 0x19);
-				var player1NewElo = dataPackage.ReadInt(gameEntryStart + 0x19 + 0x2a);
-				var player1OldElo = dataPackage.ReadInt(gameEntryStart + 0x19 + 0x26);
-				var player2Id = dataPackage.ReadUInt(gameEntryStart + 0x47);
-				var player2NewElo = dataPackage.ReadInt(gameEntryStart + 0x47 + 0x2a);
-				var player2OldElo = dataPackage.ReadInt(gameEntryStart + 0x47 + 0x26);
+				var timestamp = dataPackage.ReadUInt(gameEntryStart + 0x15 + 2);
+				var player1Id = dataPackage.ReadUInt(gameEntryStart + 0x19 + 2);
+				var player1NewElo = dataPackage.ReadInt(gameEntryStart + 0x19 + 0x2a + 2);
+				var player1OldElo = dataPackage.ReadInt(gameEntryStart + 0x19 + 0x26 + 2);
+				var player2Id = dataPackage.ReadUInt(gameEntryStart + 0x47 + 2);
+				var player2NewElo = dataPackage.ReadInt(gameEntryStart + 0x47 + 0x2a + 2);
+				var player2OldElo = dataPackage.ReadInt(gameEntryStart + 0x47 + 0x26 + 2);
 
 				var gameTimeUtc = DecodeGameHistoryTime(timestamp);
 				var entry = new GameHistoryEntry(gameId, gameTimeUtc, outcome,

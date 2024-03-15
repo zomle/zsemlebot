@@ -334,11 +334,14 @@ namespace zsemlebot.services
                 Client?.JoinChannel(channel);
                 Client?.SendPrivMsg(channel, "Arrived");
 
-				var joinedChannels = BotRepository.Instance.ListJoinedChannels();
-				foreach (var joinedChannel in joinedChannels)
+				if (!Config.Instance.Global.IsTestMode)
 				{
-					var channelName = $"#{joinedChannel.DisplayName.ToLower()}";
-					Client?.JoinChannel(channelName);
+					var joinedChannels = BotRepository.Instance.ListJoinedChannels();
+					foreach (var joinedChannel in joinedChannels)
+					{
+						var channelName = $"#{joinedChannel.DisplayName.ToLower()}";
+						Client?.JoinChannel(channelName);
+					}
 				}
             }
         }
