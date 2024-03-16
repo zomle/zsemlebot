@@ -521,14 +521,14 @@ namespace zsemlebot.hota
 						|| entry.Player2UserId == CurrentlyRequestedGameHistoryUserId)
 					{
 						mainUserId = CurrentlyRequestedGameHistoryUserId ?? 0;
-						CurrentlyRequestedGameHistoryUserId = null;
 						break;
 					}
 				}
 			}
 
-			EventLogger.LogEvent(dataPackage.Type, "game history", $"Received game history for {mainUserId.ToHexString()}. Entry count: {gameHistory.Entries}");
+			CurrentlyRequestedGameHistoryUserId = null;
 
+			EventLogger.LogEvent(dataPackage.Type, "game history", $"Received game history for {mainUserId.ToHexString()}. Entry count: {gameHistory.Entries}");
 			EnqueueEvent(gameHistory);
 		}
 
