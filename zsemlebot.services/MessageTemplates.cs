@@ -225,9 +225,10 @@ namespace zsemlebot.services
 					else if (playerInfo.Trade < 0)
 					{
 						sb.Append('-');
+						
 					}
 
-					sb.Append(playerInfo.Trade);
+					sb.Append(Math.Abs(playerInfo.Trade ?? 0));
 					sb.Append(" gold");
 				}
 			}
@@ -270,7 +271,7 @@ namespace zsemlebot.services
 			string endS = queriedUser.EndsWith('s') ? "" : "s";
 			string winPl = wins == 1 ? "" : "s";
 			string losePl = losses == 1 ? "" : "es";
-			string eloDelta = $"{(eloChange > 0 ? "+" : "-")}{Math.Abs(eloChange)}";
+			string eloDelta = $"{(eloChange < 0 ? "-" : "+")}{Math.Abs(eloChange)}";
 
 			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, {currentElo} total; considering {GetTimeZoneFromOffset(timezoneOffset)} timezone)";
 		}
@@ -280,14 +281,16 @@ namespace zsemlebot.services
 			string endS = queriedUser.EndsWith('s') ? "" : "s";
 			string winPl = wins == 1 ? "" : "s";
 			string losePl = losses == 1 ? "" : "es";
-			string eloDelta = $"{(eloChange > 0 ? "+" : "-")}{Math.Abs(eloChange)}";
+			string eloDelta = $"{(eloChange < 0 ? "-" : "+")}{Math.Abs(eloChange)}";
 
 			return $"{queriedUser}'{endS} stats for today are: {wins} win{winPl}, {losses} loss{losePl}. ({eloDelta} elo, on {accountCount} accounts; considering {GetTimeZoneFromOffset(timezoneOffset)} timezone)";
 		}
 
 		public static string HistoryTodayNoInfo(string queriedUser, TimeSpan timezoneOffset)
 		{
-			return $"Couldn't find any ranked games finished today for {queriedUser} (considering {GetTimeZoneFromOffset(timezoneOffset)} timezone).";
+			//return $"Couldn't find any ranked games finished today for {queriedUser} (considering {GetTimeZoneFromOffset(timezoneOffset)} timezone).";
+			string endS = queriedUser.EndsWith('s') ? "" : "s";
+			return $"{queriedUser}'{endS} stats for today are: 0 wins, 0 losses. (considering {GetTimeZoneFromOffset(timezoneOffset)} timezone)";
 		}
 
 		private static string GetTimeZoneFromOffset(TimeSpan offset)

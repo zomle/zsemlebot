@@ -4,6 +4,7 @@ using zsemlebot.core.Domain;
 using zsemlebot.repository;
 using zsemlebot.twitch;
 using zsemlebot.services.Log;
+using System.Linq;
 
 namespace zsemlebot.services.Commands
 {
@@ -94,22 +95,20 @@ namespace zsemlebot.services.Commands
 			}
 
 			var twitchUser = TwitchRepository.GetUser(targetName);
-			IReadOnlyList<HotaUser> hotaUsers;
+			var hotaUsers = new List<HotaUser>();
 			if (twitchUser != null)
 			{
 				//get linked users
 				var links = BotRepository.GetLinksForTwitchUser(twitchUser);
-				hotaUsers = links.LinkedHotaUsers;
+				hotaUsers.AddRange(links.LinkedHotaUsers);
 			}
-			else
+
+			var hotaUser = HotaRepository.GetUser(targetName);
+			if (hotaUser != null && !hotaUsers.Any(hu => hu.HotaUserId == hotaUser.HotaUserId))
 			{
-				var hotaUser = HotaRepository.GetUser(targetName);
-				if (hotaUser == null)
-				{
-					return (null, Array.Empty<HotaUser>());
-				}
-				hotaUsers = new HotaUser[] { hotaUser };
+				hotaUsers.Add(hotaUser);
 			}
+
 			return (twitchUser, hotaUsers);
 		}
 	}
