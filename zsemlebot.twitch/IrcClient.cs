@@ -124,7 +124,7 @@ namespace zsemlebot.twitch
 
 				Status = TwitchStatus.Connected;
 
-				SendMessage("CAP REQ :twitch.tv/tags twitch.tv/commands");
+				SendMessage("CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands");
 				SendMessage($"PASS {Config.Instance.Twitch.OAuthToken}", "PASS ***");
 				SendMessage($"NICK {Config.Instance.Twitch.User}");
 
