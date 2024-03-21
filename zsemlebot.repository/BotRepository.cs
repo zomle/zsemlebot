@@ -161,7 +161,7 @@ namespace zsemlebot.repository
 			if (removed > 0)
 			{
 				EnqueueWorkItem(@$"DELETE FROM [{ZsemlebotSettingsTableName}] 
-									WHERE [TargetTwitchUserId] = {(targetTwitchUserId == null ? "IS NULL" : "= @targetTwitchUserId")}
+									WHERE [TargetTwitchUserId] {(targetTwitchUserId == null ? "IS NULL" : "= @targetTwitchUserId")}
 										AND [ChannelTwitchUserId] {(channelTwitchUserId == null ? "IS NULL" : "= @channelTwitchUserId")}
 										AND [SettingName] = @settingName;", new { targetTwitchUserId, channelTwitchUserId, settingName });
 			}
