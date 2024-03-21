@@ -96,7 +96,14 @@ namespace zsemlebot.repository
                     HotaUsersByName.Add(hotaUser.DisplayName.ToLower(), model);
                 }
 
-                EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
+				if (oldUser.Elo != hotaUser.Elo)
+				{
+					oldUser.Elo = hotaUser.Elo;
+				}
+
+				oldUser.LastUpdatedAtUtc = DateTime.UtcNow;
+
+				EnqueueWorkItem(@$"UPDATE [{HotaUserDataTableName}] 
                             SET [DisplayName] = @newName, [Elo] = @elo, [Rep] = @rep, [LastUpdatedAtUtc] = datetime('now') 
                             WHERE [HotaUserId] = @id;",
                             new { id = hotaUser.HotaUserId, newName = hotaUser.DisplayName, elo = hotaUser.Elo, rep = hotaUser.Rep });

@@ -736,6 +736,7 @@ namespace zsemlebot.services
 			if (e.NewStatus == HotaClientStatus.Disconnected)
 			{
 				GameDirectory.Reset();
+				OnlineUsers.Clear();
 			}
 
 			statusChanged?.Invoke(sender, e);
