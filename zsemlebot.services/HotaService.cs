@@ -25,6 +25,13 @@ namespace zsemlebot.services
 			remove { messageReceived -= value; }
 		}
 
+		private EventHandler<PingSentArgs>? pingSent;
+		public event EventHandler<PingSentArgs> PingSent
+		{
+			add { pingSent += value; }
+			remove { pingSent -= value; }
+		}
+
 		private EventHandler<HotaStatusChangedArgs>? statusChanged;
 		public event EventHandler<HotaStatusChangedArgs> StatusChanged
 		{
@@ -711,6 +718,11 @@ namespace zsemlebot.services
 			messageReceived?.Invoke(sender, e);
 		}
 
+		private void Client_PingSent(object? sender, PingSentArgs e)
+		{
+			pingSent?.Invoke(sender, e);
+		}
+
 		private void Client_OwnInfoReceived(object? sender, OwnInfoReceivedArgs e)
 		{
 			OwnUserId = e.UserId;
@@ -747,6 +759,7 @@ namespace zsemlebot.services
 			client.StatusChanged += Client_StatusChanged;
 			client.MessageReceived += Client_MessageReceived;
 			client.OwnInfoReceived += Client_OwnInfoReceived;
+			client.PingSent += Client_PingSent;
 		}
 
 		private void RemoveEventHandlers(LobbyClient client)
@@ -754,6 +767,7 @@ namespace zsemlebot.services
 			client.StatusChanged -= Client_StatusChanged;
 			client.MessageReceived -= Client_MessageReceived;
 			client.OwnInfoReceived -= Client_OwnInfoReceived;
+			client.PingSent -= Client_PingSent;
 		}
 
 		#region IDisposable implementation

@@ -31,6 +31,13 @@ namespace zsemlebot.hota
 			remove { messageReceived -= value; }
 		}
 
+		private EventHandler<PingSentArgs>? pingSent;
+		public event EventHandler<PingSentArgs> PingSent
+		{
+			add { pingSent += value; }
+			remove { pingSent -= value; }
+		}
+
 		private EventHandler<HotaStatusChangedArgs>? statusChanged;
 		public event EventHandler<HotaStatusChangedArgs> StatusChanged
 		{
@@ -89,7 +96,20 @@ namespace zsemlebot.hota
 
 		public uint? CurrentlyRequestedGameHistoryUserId { get; private set; }
 
-		private DateTime LastPingSentAt { get; set; }
+		private DateTime lastPingSentAt;
+		private DateTime LastPingSentAt
+		{
+			get { return lastPingSentAt; }
+			set
+			{
+				if (lastPingSentAt != value)
+				{
+					lastPingSentAt = value;
+					pingSent?.Invoke(this, new PingSentArgs());
+				}
+			}
+		}
+
 		private static readonly object padlock = new object();
 
 		public LobbyClient()
@@ -256,7 +276,7 @@ namespace zsemlebot.hota
 				while (true)
 				{
 					bool shouldPingAgain = DateTime.Now - LastPingSentAt > PingFrequency;
-					if (Status == HotaClientStatus.Connected && shouldPingAgain)
+					if ((Status == HotaClientStatus.Connected || Status == HotaClientStatus.Authenticated) && shouldPingAgain)
 					{
 						LastPingSentAt = DateTime.Now;
 						SendPing();

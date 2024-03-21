@@ -49,6 +49,7 @@
                     <RowDefinition />
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
@@ -77,6 +78,9 @@
                 
                 <Label Grid.Row="4" Grid.Column="0">Last message received at:</Label>
                 <TextBlock Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.LastMessageReceivedAt}"></TextBlock>
+
+                <Label Grid.Row="5" Grid.Column="0">Last ping sent at:</Label>
+                <TextBlock Grid.Row="5" Grid.Column="1" VerticalAlignment="Center" FontWeight="Bold" Text="{Binding Path=HotaViewModel.LastPingSentAt}"></TextBlock>
             </Grid>
         </GroupBox>
     </Grid>
