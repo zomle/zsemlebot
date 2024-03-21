@@ -264,7 +264,14 @@ namespace zsemlebot.services.Commands
 				return;
 			}
 
-			BotRepository.UpdateZsemlebotSetting(null, sender.TwitchUserId, providedCommand, enableDisable);
+			var channelTwitchUser = TwitchRepository.GetUser(channel[1..]);
+			if (channelTwitchUser == null)
+			{
+				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.TwitchUserNotFound(channel[1..]));
+				return;
+			}
+
+			BotRepository.UpdateZsemlebotSetting(null, channelTwitchUser.TwitchUserId, providedCommand, enableDisable);
 
 			if (enableDisable == Constants.Settings_Enable)
 			{
@@ -304,15 +311,23 @@ namespace zsemlebot.services.Commands
 					return;
 			}
 
-			if (newValue == null)
+			var channelTwitchUser = TwitchRepository.GetUser(channel[1..]);
+			if (channelTwitchUser == null)
 			{
-				BotRepository.DeleteZsemlebotSetting(null, sender.TwitchUserId, providedOption);
-				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingRemoved(providedOption));
+				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.TwitchUserNotFound(channel[1..]));
 				return;
 			}
 
-			BotRepository.UpdateZsemlebotSetting(null, sender.TwitchUserId, providedOption, newValue);
-			TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingUpdated(providedOption));
+			if (newValue == null)
+			{
+				BotRepository.DeleteZsemlebotSetting(null, channelTwitchUser.TwitchUserId, providedOption);
+				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingRemoved(providedOption));
+			}
+			else
+			{
+				BotRepository.UpdateZsemlebotSetting(null, channelTwitchUser.TwitchUserId, providedOption, newValue);
+				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.ZsemlebotSettingUpdated(providedOption));
+			}
 		}
 
 		private void HanelSetUnsetForValue(string? sourceMessageId, string channel, MessageSource sender, string targetChannelName, string targetUserName, string providedOption, string? newValue)
