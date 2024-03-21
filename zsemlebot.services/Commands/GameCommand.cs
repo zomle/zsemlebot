@@ -52,21 +52,7 @@ namespace zsemlebot.services.Commands
 			}
 
 			var queriedUser = parameters;
-
-			var queriedHotaUsers = new List<HotaUser>();
-			var twitchUser = TwitchRepository.GetUser(queriedUser);
-			if (twitchUser != null)
-			{
-				//supplied parameter is an existing twitch user;
-				var links = BotRepository.GetLinksForTwitchUser(twitchUser);
-				queriedHotaUsers.AddRange(links.LinkedHotaUsers);
-			}
-
-			var hotaUser = HotaRepository.GetUser(queriedUser);
-			if (hotaUser != null && !queriedHotaUsers.Any(hu => hu.HotaUserId == hotaUser.HotaUserId))
-			{
-				queriedHotaUsers.Add(hotaUser);
-			}
+			var (twitchUser, queriedHotaUsers) = ListHotaUsers(channel, parameters);
 
 			HandleGameCommandForHotaUsers(sourceMessageId, channel, queriedUser, queriedHotaUsers);
 		}

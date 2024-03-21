@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.services.Log;
+using static System.Collections.Specialized.BitVector32;
 
 namespace zsemlebot.services
 {
@@ -18,10 +21,19 @@ namespace zsemlebot.services
 		public HotaGameDirectory()
 		{
 			ActiveGames = new Dictionary<GameKey, HotaGame>(1000);
-
 			NotFullCount = 0;
 			NotStartedCount = 0;
 			InProgressCount = 0;
+		}
+		public void Reset()
+		{
+			NotFullCount = 0;
+			NotStartedCount = 0;
+			InProgressCount = 0;
+
+			ActiveGames.Clear();
+
+			BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game directory is reset.");
 		}
 
 		public HotaGame? FindGame(HotaUser user)

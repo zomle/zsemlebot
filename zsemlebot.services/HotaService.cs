@@ -732,6 +732,12 @@ namespace zsemlebot.services
 			{
 				PauseUpdateNotifications = true;
 			}
+
+			if (e.NewStatus == HotaClientStatus.Disconnected)
+			{
+				GameDirectory.Reset();
+			}
+
 			statusChanged?.Invoke(sender, e);
 		}
 
