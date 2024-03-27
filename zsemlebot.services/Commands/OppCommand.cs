@@ -34,9 +34,9 @@ namespace zsemlebot.services.Commands
 									.ToList();
 
 					HotaService.RequestUserRepAndWait(opps);
-					HotaService.RequestUserEloAndWait(opps);
-
-					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.OppDescriptions(opps));
+					var eloResponse = HotaService.RequestUserEloAndWait(opps);
+					var requestedUsers = eloResponse.UpdatedUsers.Concat(eloResponse.NotUpdatedUsers).ToList();
+					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.OppDescriptions(requestedUsers));
 				}).Start();
 			}
 		}
