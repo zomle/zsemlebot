@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Channels;
 using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
@@ -12,6 +13,7 @@ using zsemlebot.hota;
 using zsemlebot.hota.Events;
 using zsemlebot.repository;
 using zsemlebot.services.Log;
+using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
@@ -51,6 +53,13 @@ namespace zsemlebot.services
 		{
 			add { gameListChanged += value; }
 			remove { gameListChanged -= value; }
+		}
+
+		private EventHandler<PrivMsgReceivedArgs>? privmsgReceived;
+		public event EventHandler<PrivMsgReceivedArgs> PrivmsgReceived
+		{
+			add { privmsgReceived += value; }
+			remove { privmsgReceived -= value; }
 		}
 		#endregion
 
@@ -213,6 +222,8 @@ namespace zsemlebot.services
 
 		public void SendChatMessage(uint targetHotaUserId, string message)
 		{
+			var hotaUser = GetHotaUser(targetHotaUserId);
+			privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(hotaUser.DisplayName ?? "(null)", Config.Instance.Hota.User ?? "(null)", message));
 			Client?.SendMessage(targetHotaUserId, message);
 		}
 
@@ -595,6 +606,9 @@ namespace zsemlebot.services
 			{
 				return;
 			}
+
+			var hotaUser = GetHotaUser(evnt.SourceUserId);
+			privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(Config.Instance.Hota.User ?? "(null)", hotaUser.DisplayName ?? "(null)", evnt.Message));
 
 			if (!evnt.Message.StartsWith('!'))
 			{

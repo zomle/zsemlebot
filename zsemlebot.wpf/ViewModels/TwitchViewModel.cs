@@ -102,7 +102,7 @@ namespace zsemlebot.wpf.ViewModels
 
         private void TwitchService_PrivmsgReceived(object? sender, PrivMsgReceivedArgs e)
         {
-            var newMessage = new ChatMessage(e.Timestamp, e.Channel, e.Sender, e.Message);
+            var newMessage = new ChatMessage(e.Timestamp, e.Target, e.Sender, e.Message);
 
             InvokeOnUI(() => { Messages.Add(newMessage); });
 

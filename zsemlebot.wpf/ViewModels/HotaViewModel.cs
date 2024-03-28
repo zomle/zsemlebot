@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using zsemlebot.core;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.services;
+using zsemlebot.twitch;
 
 namespace zsemlebot.wpf.ViewModels
 {
@@ -125,6 +127,8 @@ namespace zsemlebot.wpf.ViewModels
 		public ICommand ReconnectCommand { get; }
 		public ICommand TestCommand { get; }
 
+		public ObservableCollection<ChatMessage> Messages { get; }
+
 		private HotaService HotaService { get; }
 
 		public HotaViewModel(HotaService hotaService)
@@ -138,12 +142,14 @@ namespace zsemlebot.wpf.ViewModels
 
 			HotaService = hotaService;
 
+			HotaService.PrivmsgReceived += HotaService_PrivmsgReceived;
 			HotaService.MessageReceived += HotaService_MessageReceived;
 			HotaService.PingSent += HotaService_PingSent;
 			HotaService.StatusChanged += HotaService_StatusChanged;
 			HotaService.UserListChanged += HotaService_UserListChanged;
 			HotaService.GameListChanged += HotaService_GameListChanged;
-			
+
+			Messages = new ObservableCollection<ChatMessage>();
 
 			ConnectCommand = new CommandHandler(
 				() => HotaService.Connect(),
@@ -189,6 +195,18 @@ namespace zsemlebot.wpf.ViewModels
 		private void HotaService_PingSent(object? sender, PingSentArgs e)
 		{
 			LastPingSentAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+		}
+
+		private void HotaService_PrivmsgReceived(object? sender, PrivMsgReceivedArgs e)
+		{
+			var newMessage = new ChatMessage(e.Timestamp, e.Target, e.Sender, e.Message);
+
+			InvokeOnUI(() => { Messages.Add(newMessage); });
+
+			if (Messages.Count > 200)
+			{
+				InvokeOnUI(() => { Messages.RemoveAt(0); });
+			}
 		}
 	}
 }

@@ -50,7 +50,7 @@
                     <GridViewColumn Header="Channel" Width="110">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding Channel}" FontWeight="Bold" />
+                                <TextBlock Text="{Binding Target}" FontWeight="Bold" />
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
