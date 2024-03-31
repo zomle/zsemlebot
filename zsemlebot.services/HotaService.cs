@@ -465,8 +465,8 @@ namespace zsemlebot.services
 			foreach (var entry in evnt.Entries)
 			{
 				var newHistoryEntry = new HotaUserGameHistoryEntry(entry.GameId, entry.GameTimeInUtc, entry.OutCome,
-					entry.Player1UserId, entry.Player1OldElo, entry.Player1NewElo,
-					entry.Player2UserId, entry.Player2OldElo, entry.Player2NewElo);
+					entry.Player1UserId, entry.Player1Color, entry.Player1Town, entry.Player1Hero, entry.Player1OldElo, entry.Player1NewElo,
+					entry.Player2UserId, entry.Player2Color, entry.Player2Town, entry.Player2Hero, entry.Player2OldElo, entry.Player2NewElo);
 
 				entries.Add(newHistoryEntry);
 				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game history entry: {mainUser.DisplayName} ({evnt.MainHotaUserId.ToHexString()}). Entry: Id: {entry.GameId.ToHexString()}; game time: {entry.GameTimeInUtc:yyyy-MM-dd HH:mm}; outcome: {entry.OutCome}; P1 id: {entry.Player1UserId.ToHexString()}; P1 elo: {entry.Player1OldElo} -> {entry.Player1NewElo}; P2 id: {entry.Player2UserId.ToHexString()}; P2 elo: {entry.Player2OldElo} -> {entry.Player2NewElo}");

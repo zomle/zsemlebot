@@ -2,12 +2,12 @@
 
 namespace zsemlebot.hota.Messages
 {
-	public class RequestUserHistoryMessage : HotaMessageBase
+	public class RequestGameHistoryMessage : HotaMessageBase
 	{
 		public uint TargetUserId { get; }
 
-		public RequestUserHistoryMessage(uint targetUserId)
-			: base(MessageType.RequestUserHistory, 0xc)
+		public RequestGameHistoryMessage(uint targetUserId)
+			: base(MessageType.RequestGameHistory, 0xc)
 		{
 			TargetUserId = targetUserId;
 		}

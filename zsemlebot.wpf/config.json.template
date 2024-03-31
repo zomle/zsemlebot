@@ -9,7 +9,9 @@
 		user: "",
 		oauthtoken: "",
 		adminchannel: "",
-		adminuserid: 0
+		adminuserid: 0,
+		clientid: "",
+		clientsecret: ""
 	},
 	hota: {
 		serveraddress: "",

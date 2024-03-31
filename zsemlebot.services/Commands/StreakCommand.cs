@@ -104,17 +104,17 @@ namespace zsemlebot.services.Commands
 				foreach (var game in gameList.OrderByDescending(g => g.GameTimeInUtc))
 				{
 					bool currentGameWon;
-					if (mainUserIds.Contains(game.Player1UserId))
+					if (mainUserIds.Contains(game.Player1.UserId))
 					{
-						currentGameWon = game.Player1EloChange > game.Player2EloChange;
+						currentGameWon = game.Player1.EloChange > game.Player2.EloChange;
 					}
-					else if (mainUserIds.Contains(game.Player2UserId))
+					else if (mainUserIds.Contains(game.Player2.UserId))
 					{
-						currentGameWon = game.Player2EloChange > game.Player1EloChange;
+						currentGameWon = game.Player2.EloChange > game.Player1.EloChange;
 					}
 					else
 					{
-						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"ERROR. Neither player in the game history belongs to the current hota user. Game id: {game.GameId.ToHexString()}; Player1 id: {game.Player1UserId.ToHexString()}; Player2 id: {game.Player2UserId.ToHexString()}; Requested hota user ids: {string.Join("; ", mainUserIds.Select(uid => uid.ToHexString()))}");
+						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"ERROR. Neither player in the game history belongs to the current hota user. Game id: {game.GameId.ToHexString()}; Player1 id: {game.Player1.UserId.ToHexString()}; Player2 id: {game.Player2.UserId.ToHexString()}; Requested hota user ids: {string.Join("; ", mainUserIds.Select(uid => uid.ToHexString()))}");
 						continue;
 					}
 

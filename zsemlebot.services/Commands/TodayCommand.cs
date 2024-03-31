@@ -148,12 +148,12 @@ namespace zsemlebot.services.Commands
 						//BotLogger.Instance.LogEvent(BotLogSource.User, $"HandleTodayCommandForHotaUsers(): Game Id: {gameEntry.GameId.ToHexString()}; Added to result.");
 						relevantGames.Add(gameEntry);
 
-						if (gameEntry.Player1UserId == hotaUser.HotaUserId)
+						if (gameEntry.Player1.UserId == hotaUser.HotaUserId)
 						{
-							eloChange += gameEntry.Player1EloChange;
-							currentElo = gameEntry.Player1NewElo;
+							eloChange += gameEntry.Player1.EloChange;
+							currentElo = gameEntry.Player1.NewElo;
 
-							if (gameEntry.Player1EloChange > gameEntry.Player2EloChange)
+							if (gameEntry.Player1.EloChange > gameEntry.Player2.EloChange)
 							{
 								wins++;
 							}
@@ -162,12 +162,12 @@ namespace zsemlebot.services.Commands
 								losses++;
 							}
 						}
-						else if (gameEntry.Player2UserId == hotaUser.HotaUserId)
+						else if (gameEntry.Player2.UserId == hotaUser.HotaUserId)
 						{
-							eloChange += gameEntry.Player2EloChange;
-							currentElo = gameEntry.Player2NewElo;
+							eloChange += gameEntry.Player2.EloChange;
+							currentElo = gameEntry.Player2.NewElo;
 
-							if (gameEntry.Player2EloChange > gameEntry.Player1EloChange)
+							if (gameEntry.Player2.EloChange > gameEntry.Player1.EloChange)
 							{
 								wins++;
 							}
@@ -178,7 +178,7 @@ namespace zsemlebot.services.Commands
 						}
 						else
 						{
-							BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"ERROR. Neither player in the game history belongs to the current hota user. Game id: {gameEntry.GameId.ToHexString()}; Player1 id: {gameEntry.Player1UserId.ToHexString()}; Player2 id: {gameEntry.Player2UserId.ToHexString()}; Requested hota user id: {hotaUser.HotaUserId.ToHexString()}");
+							BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"ERROR. Neither player in the game history belongs to the current hota user. Game id: {gameEntry.GameId.ToHexString()}; Player1 id: {gameEntry.Player1.UserId.ToHexString()}; Player2 id: {gameEntry.Player2.UserId.ToHexString()}; Requested hota user id: {hotaUser.HotaUserId.ToHexString()}");
 						}
 					}
 

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using zsemlebot.core.Domain;
 using zsemlebot.repository;
 using zsemlebot.twitch;
@@ -63,6 +65,63 @@ namespace zsemlebot.services.Commands
 			if (games.Count == 0)
 			{
 				TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.GameNotFound(queriedUser));
+			}
+			else if (games.Count == 1)
+			{
+				var gameInfo = games[0];
+				if (gameInfo.Game.IsStarted && gameInfo.Game.JoinedPlayers.All(jp => jp.Color == null && jp.Faction == null))
+				{
+					new Thread(() =>
+					{
+						var response = HotaService.RequestGameHistoryAndWait(new[] { gameInfo.UserOfInterest });
+
+						if (response.UpdatedUsers.Count > 0)
+						{
+							var updatedUser = response.UpdatedUsers[0];
+							var lastGame = updatedUser.GameHistory.Values.OrderByDescending(ghe => ghe.GameTimeInUtc).FirstOrDefault();
+							//check if last game is the current game
+							if (lastGame != null && lastGame.OutCome == 1)
+							{
+								foreach (var joinedPlayer in gameInfo.Game.JoinedPlayers)
+								{
+									HotaUserGameHistoryPlayer? historyPlayer = null;
+									if (lastGame.Player1.UserId == joinedPlayer.HotaUserId)
+									{
+										historyPlayer = lastGame.Player1;
+									}
+									else if (lastGame.Player2.UserId == joinedPlayer.HotaUserId)
+									{
+										historyPlayer = lastGame.Player2;
+									}
+									else
+									{
+										historyPlayer = null;
+									}
+
+									if (historyPlayer != null)
+									{
+										var newColor = joinedPlayer.Color ?? historyPlayer.Color.ToString();
+										var newFaction = joinedPlayer.Faction ?? historyPlayer.Town.ToString();
+										HotaService.UpdatePlayerInfo(gameInfo.Game, joinedPlayer, newColor, newFaction, null);
+									}
+								}								
+							}
+							
+							var description = MessageTemplates.GameDescription(gameInfo);
+							TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.CurrentGames(new[] { description }));
+						}
+						else
+						{
+							var description = MessageTemplates.GameDescription(gameInfo);
+							TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.CurrentGames(new[] { description }));
+						}
+					}).Start();
+				}
+				else
+				{
+					var description = MessageTemplates.GameDescription(gameInfo);
+					TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.CurrentGames(new[] { description }));
+				}				
 			}
 			else
 			{

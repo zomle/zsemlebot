@@ -8,6 +8,7 @@
         RequestUserRep = 0x68,
         RequestUserElo = 0x74,
         MaybePing = 0x95,
-		RequestUserHistory = 0x97,
+		RequestGameHistory = 0x97,
+		RequestMapInfo = 0x99,
 	}
 }

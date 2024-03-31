@@ -229,7 +229,7 @@ namespace zsemlebot.hota
 				CurrentlyRequestedGameHistoryUserId = userId;
 			}
 
-			SendSocketRaw(new RequestUserHistoryMessage(userId));
+			SendSocketRaw(new RequestGameHistoryMessage(userId));
 			return true;
 		}
 
@@ -488,9 +488,31 @@ namespace zsemlebot.hota
 					ProcessRankedGameHistory(dataPackage);
 					return true;
 
+				case Constants.MsgTypex9A_MapInfo:
+					ProcessMapInfo(dataPackage);
+					return true;
+
 				default:
 					EventLogger.LogEvent(dataPackage.Type, "unhandled");
 					return false;
+			}
+		}
+
+		private void ProcessMapInfo(DataPackage dataPackage)
+		{
+			AssertType(dataPackage, Constants.MsgTypex9A_MapInfo);
+
+			const int PackageHeaderSize = 0x8;
+			const int MapEntryLength = 0x45;
+
+			var entryCount = dataPackage.ReadInt(4);
+
+			for (int i = 0; i < entryCount; i++)
+			{
+				var mapEntryStart = PackageHeaderSize + i * MapEntryLength;
+
+				var mapId = dataPackage.ReadUInt(mapEntryStart);
+				var mapName = dataPackage.ReadString(mapEntryStart+4, 0x40);
 			}
 		}
 
@@ -498,8 +520,8 @@ namespace zsemlebot.hota
 		{
 			AssertType(dataPackage, Constants.MsgTypex98_RankedGameHistory);
 
-			const int GameEntryLength = 0x77;
 			const int PackageHeaderSize = 0x10;
+			const int GameEntryLength = 0x77;
 
 			var allGames = dataPackage.ReadInt(4);
 			var gamesInPackage = dataPackage.ReadInt(8);
@@ -510,26 +532,51 @@ namespace zsemlebot.hota
 				AllGames = allGames,
 			};
 
+			EventLogger.LogEvent(dataPackage.Type, "game history", $"Requested user id: {CurrentlyRequestedGameHistoryUserId?.ToHexString()}");
+
 			for (int i = 0; i < gamesInPackage; i++)
 			{
 				var gameEntryStart = PackageHeaderSize + i * GameEntryLength;
 
 				var gameId = dataPackage.ReadUInt(gameEntryStart);
+				var mapId = dataPackage.ReadUInt(gameEntryStart + 0x4);
 				var outcome = dataPackage.ReadByte(gameEntryStart + 0xb);
-				var timestamp = dataPackage.ReadUInt(gameEntryStart + 0x15 + 2);
-				var player1Id = dataPackage.ReadUInt(gameEntryStart + 0x19 + 2);
-				var player1NewElo = dataPackage.ReadInt(gameEntryStart + 0x19 + 0x2a + 2);
-				var player1OldElo = dataPackage.ReadInt(gameEntryStart + 0x19 + 0x26 + 2);
-				var player2Id = dataPackage.ReadUInt(gameEntryStart + 0x47 + 2);
-				var player2NewElo = dataPackage.ReadInt(gameEntryStart + 0x47 + 0x2a + 2);
-				var player2OldElo = dataPackage.ReadInt(gameEntryStart + 0x47 + 0x26 + 2);
+				var timestamp = dataPackage.ReadUInt(gameEntryStart + 0x17);
 
-				var gameTimeUtc = DecodeGameHistoryTime(timestamp);
-				var entry = new GameHistoryEntry(gameId, gameTimeUtc, outcome,
-												player1Id, player1OldElo, player1NewElo,
-												player2Id, player2OldElo, player2NewElo);
+				var player1Id = dataPackage.ReadUInt(gameEntryStart + 0x1b);
+				var player1Color = dataPackage.ReadByte(gameEntryStart + 0x1b + 0x4);
+				var player1Town = dataPackage.ReadByte(gameEntryStart + 0x1b + 0xb);
+				var player1Hero = dataPackage.ReadByte(gameEntryStart + 0x1b + 0xc);
+				var player1NewElo = dataPackage.ReadInt(gameEntryStart + 0x1b + 0x2a);
+				var player1OldElo = dataPackage.ReadInt(gameEntryStart + 0x1b + 0x26);
 
-				gameHistory.Entries.Add(entry);
+				var player2Id = dataPackage.ReadUInt(gameEntryStart + 0x49);
+				var player2Color = dataPackage.ReadByte(gameEntryStart + 0x49 + 0x4);
+				var player2Town = dataPackage.ReadByte(gameEntryStart + 0x49 + 0xb);
+				var player2Hero = dataPackage.ReadByte(gameEntryStart + 0x49 + 0xc);
+				var player2NewElo = dataPackage.ReadInt(gameEntryStart + 0x49 + 0x2a);
+				var player2OldElo = dataPackage.ReadInt(gameEntryStart + 0x49 + 0x26);
+
+				try
+				{
+					var gameTimeUtc = DecodeGameHistoryTime(timestamp);
+					var entry = new GameHistoryEntry(gameId, mapId, gameTimeUtc, outcome,
+													player1Id, player1Color, player1Town, player1Hero, player1OldElo, player1NewElo,
+													player2Id, player2Color, player2Town, player2Hero, player2OldElo, player2NewElo);
+
+					var p1info = $"Id: {player1Id.ToHexString()}; Color: {player1Color}; Town: {player1Town}; OldElo: {player1OldElo} ({player1OldElo.ToHexString()}); NewElo: {player1NewElo} ({player1NewElo.ToHexString()})";
+					var p2info = $"Id: {player2Id.ToHexString()}; Color: {player2Color}; Town: {player2Town}; OldElo: {player2OldElo} ({player2OldElo.ToHexString()}); NewElo: {player2NewElo} ({player2NewElo.ToHexString()})";
+					EventLogger.LogEvent(dataPackage.Type, "game hist item", $"Game id: {gameId.ToHexString()}; Map id: {mapId.ToHexString()}; Outcome: {outcome}; Timestamp: {timestamp.ToHexString()}; P1: ({p1info}); P2: ({p2info})");
+					gameHistory.Entries.Add(entry);
+				}
+				catch (Exception e)
+				{
+					EventLogger.LogEvent(dataPackage.Type, "decode exception", $"Exception happened while decoding the package: {e.Message}");
+				}
+				finally
+				{
+					PackageLogger.LogPartialPackage(dataPackage, gameEntryStart, GameEntryLength);
+				}					
 			}
 
 			uint mainUserId = 0;
@@ -548,7 +595,7 @@ namespace zsemlebot.hota
 
 			CurrentlyRequestedGameHistoryUserId = null;
 
-			EventLogger.LogEvent(dataPackage.Type, "game history", $"Received game history for {mainUserId.ToHexString()}. Entry count: {gameHistory.Entries}");
+			EventLogger.LogEvent(dataPackage.Type, "game history", $"Received game history for {mainUserId.ToHexString()}. Entry count: {gameHistory.Entries.Count}");
 			EnqueueEvent(gameHistory);
 		}
 
@@ -566,10 +613,10 @@ namespace zsemlebot.hota
 		private static uint DecodeGameHistoryMonth(uint ts)
 		{
 			var uvar1 = (ts / 0x5a0 << 2) / 0x5b5;
-			var uvar2 = (ts / 0x5a0 - (((uvar1 * 0x16d + (uvar1 + 3 >> 2)) - (uvar1 + 99) / 100) + (uvar1 + 399) / 400)) + 1;
+			var uvar2 = (ts / 0x5a0 - (uvar1 * 0x16d + ((uvar1 + 3) >> 2) - (uvar1 + 99) / 100 + (uvar1 + 399) / 400)) + 1;
 			uint[] tmp1;
 
-			if (((uvar1 % 4 == 0) && (uvar1 % 100 == 0)) || (uvar1 % 400 == 0))
+			if (((uvar1 % 4 == 0) && (uvar1 % 100 != 0)) || (uvar1 % 400 == 0))
 			{
 				tmp1 = new[] { 0x00u, 0x1fu, 0x3cu, 0x5bu,  0x79u,  0x98u, 0xb6u,
 									  0xd5u, 0xf4u, 0x112u, 0x131u, 0x14fu, 0x16eu };

@@ -7,5 +7,8 @@
 
         public string? AdminChannel { get; set; }
         public int AdminUserId { get; set; }
+
+		public string? ClientId { get; set; }
+		public string? ClientSecret { get; set; }
     }
 }
