@@ -22,6 +22,7 @@ namespace zsemlebot.hota
 	public class LobbyClient : IDisposable
 	{
 		private readonly TimeSpan PingFrequency = TimeSpan.FromSeconds(30);
+		private readonly TimeSpan MaxWaitInConnectedState = TimeSpan.FromMinutes(1);
 
 		#region Events
 		private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -62,11 +63,13 @@ namespace zsemlebot.hota
 			{
 				if (status != value)
 				{
+					LastStatusChangedAt = DateTime.Now;
 					status = value;
 					statusChanged?.Invoke(this, new HotaStatusChangedArgs(value, MinimumClientVersion));
 				}
 			}
 		}
+		private DateTime LastStatusChangedAt { get; set; }
 
 		private int? MinimumClientVersion { get; set; }
 
@@ -280,6 +283,12 @@ namespace zsemlebot.hota
 			{
 				while (true)
 				{
+					if (Status == HotaClientStatus.Connected && DateTime.Now - LastStatusChangedAt > MaxWaitInConnectedState)
+					{
+						Status = HotaClientStatus.Disconnected;
+						break;
+					}
+
 					bool shouldPingAgain = DateTime.Now - LastPingSentAt > PingFrequency;
 					if ((Status == HotaClientStatus.Connected || Status == HotaClientStatus.Authenticated) && shouldPingAgain)
 					{
