@@ -74,7 +74,6 @@ namespace zsemlebot.services.Commands
 					new Thread(() =>
 					{
 						var response = HotaService.RequestGameHistoryAndWait(new[] { gameInfo.UserOfInterest });
-
 						if (response.UpdatedUsers.Count > 0)
 						{
 							var updatedUser = response.UpdatedUsers[0];
@@ -104,8 +103,15 @@ namespace zsemlebot.services.Commands
 										var newFaction = joinedPlayer.Faction ?? historyPlayer.Town.ToString();
 										HotaService.UpdatePlayerInfo(gameInfo.Game, joinedPlayer, newColor, newFaction, null);
 									}
-								}								
-							}
+								}
+
+								var mapNameResponse = HotaService.RequestMapNameAndWait(new[] { lastGame.MapId });
+								if (mapNameResponse.MapNames.TryGetValue(lastGame.MapId, out var mapName)) 
+								{
+									var newTemplateName = gameInfo.Game.Template ?? mapName;
+									HotaService.UpdateGameInfo(gameInfo.Game, newTemplateName);
+								}
+							}							
 							
 							var description = MessageTemplates.GameDescription(gameInfo);
 							TwitchService.SendChatMessage(sourceMessageId, channel, MessageTemplates.CurrentGames(new[] { description }));

@@ -7,17 +7,20 @@ namespace zsemlebot.core.Domain
 	public class HotaUserGameHistoryEntry
 	{
 		public uint GameId { get; }
+		public uint MapId { get; }
+
 		public DateTime GameTimeInUtc { get; }
 		public int OutCome { get; }
 
 		public HotaUserGameHistoryPlayer Player1 { get; }
 		public HotaUserGameHistoryPlayer Player2 { get; }
 
-		public HotaUserGameHistoryEntry(uint gameId, DateTime gameTimeInUtc, int outCome,
+		public HotaUserGameHistoryEntry(uint gameId, uint mapId, DateTime gameTimeInUtc, int outCome,
 			uint player1Id, HotaColor player1Color, HotaTown player1Town, byte player1Hero, int player1OldElo, int player1NewElo,
 			uint player2Id, HotaColor player2Color, HotaTown player2Town, byte player2Hero, int player2OldElo, int player2NewElo)
 		{
 			GameId = gameId;
+			MapId = mapId;
 			GameTimeInUtc = gameTimeInUtc;
 			OutCome = outCome;
 

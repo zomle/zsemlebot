@@ -103,6 +103,11 @@ namespace zsemlebot.services
 		public static readonly TimeSpan RequestRepTimeOut = TimeSpan.FromSeconds(5);
 
 		/// <summary>
+		/// This is how much time we will wait before giving up on getting the map name.
+		/// </summary>
+		public static readonly TimeSpan RequestMapInfoTimeOut = TimeSpan.FromSeconds(3);
+
+		/// <summary>
 		/// This is how much time we will wait before responding to user with
 		/// </summary>
 		public static readonly TimeSpan RequestGameHistoryTimeOut = TimeSpan.FromSeconds(10);

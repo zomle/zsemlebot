@@ -15,6 +15,7 @@ namespace zsemlebot.repository
 		protected const string JoinedChannelsTableName = "JoinedChannels";
 		protected const string TwitchUserDataTableName = "TwitchUserData";
 		protected const string HotaUserDataTableName = "HotaUserData";
+		protected const string HotaMapDataTableName = "HotaMapData";
 		protected const string TwitchHotaUserLinkTableName = "TwitchHotaUserLink";
 		protected const string TwitchHotaUserLinkRequestTableName = "TwitchHotaUserLinkRequest";
 		protected const string TwitchUserIgnoreListTableName = "TwitchUserIgnoreList";
@@ -82,6 +83,12 @@ namespace zsemlebot.repository
                     [Elo] INTEGER,
                     [Rep] INTEGER,
                     [LastUpdatedAtUtc] TEXT NOT NULL
+				)");
+
+			ExecuteNonQuery(@$"CREATE TABLE IF NOT EXISTS [{HotaMapDataTableName}]
+				(
+					[HotaMapId] INTEGER NOT NULL PRIMARY KEY,
+					[MapName] TEXT NOT NULL COLLATE NOCASE
 				)");
 
 			ExecuteNonQuery(@$"CREATE INDEX IF NOT EXISTS [IX_HotaUserData_HotaUserId] ON [{HotaUserDataTableName}] 

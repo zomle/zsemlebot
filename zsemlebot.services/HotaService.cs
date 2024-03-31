@@ -392,6 +392,66 @@ namespace zsemlebot.services
 			return new GameHistoryResponse(updatedUsers, remainingUsers);
 		}
 
+		public MapNameResponse RequestMapNameAndWait(IReadOnlyList<uint> mapIds)
+		{
+			if (Client?.Status != HotaClientStatus.Authenticated)
+			{
+				return new MapNameResponse();
+			}
+
+			var remainingMapIds = new List<uint>();
+
+			var result = new MapNameResponse();
+
+			foreach (var mapId in mapIds)
+			{
+				var map = HotaRepository.GetMap(mapId);
+				if (map == null)
+				{
+					remainingMapIds.Add(mapId);
+				}
+				else
+				{
+					result.MapNames[mapId] = map.DisplayName;
+				}
+			}
+
+			if (remainingMapIds.Count == 0)
+			{
+				return result;
+			}
+
+			var waitUntil = DateTime.UtcNow + Constants.RequestMapInfoTimeOut;
+
+			Client.GetMapInfos(remainingMapIds);
+
+			while (DateTime.UtcNow < waitUntil)
+			{
+				for (int i = 0; i < remainingMapIds.Count;)
+				{
+					var mapId = remainingMapIds[i];
+					var tmpMap = HotaRepository.GetMap(mapId);
+					if (tmpMap != null)
+					{
+						result.MapNames[mapId] = tmpMap.DisplayName;
+
+						remainingMapIds.RemoveAt(i);
+						continue;
+					}
+					i++;
+				}
+
+				if (remainingMapIds.Count == 0)
+				{
+					break;
+				}
+
+				Thread.Sleep(150);
+			}
+
+			return result;
+		}
+
 		private TimeSpan GetWaitBetweenReconnects()
 		{
 			int index = ReconnectCount >= WaitTimesBetweenReconnect.Length ? WaitTimesBetweenReconnect.Length - 1 : ReconnectCount;
@@ -454,7 +514,16 @@ namespace zsemlebot.services
 				case GameHistory history:
 					HandleGameHistory(history);
 					break;
+				
+				case MapInfo mapInfo:
+					HandleMapInfo(mapInfo);
+					break;			
 			}
+		}
+
+		private void HandleMapInfo(MapInfo evnt)
+		{
+			HotaRepository.UpdateMap(evnt.MapId, evnt.MapName);
 		}
 
 		private void HandleGameHistory(GameHistory evnt)
@@ -464,12 +533,12 @@ namespace zsemlebot.services
 			var entries = new List<HotaUserGameHistoryEntry>();
 			foreach (var entry in evnt.Entries)
 			{
-				var newHistoryEntry = new HotaUserGameHistoryEntry(entry.GameId, entry.GameTimeInUtc, entry.OutCome,
+				var newHistoryEntry = new HotaUserGameHistoryEntry(entry.GameId, entry.MapId, entry.GameTimeInUtc, entry.OutCome,
 					entry.Player1UserId, entry.Player1Color, entry.Player1Town, entry.Player1Hero, entry.Player1OldElo, entry.Player1NewElo,
 					entry.Player2UserId, entry.Player2Color, entry.Player2Town, entry.Player2Hero, entry.Player2OldElo, entry.Player2NewElo);
 
 				entries.Add(newHistoryEntry);
-				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game history entry: {mainUser.DisplayName} ({evnt.MainHotaUserId.ToHexString()}). Entry: Id: {entry.GameId.ToHexString()}; game time: {entry.GameTimeInUtc:yyyy-MM-dd HH:mm}; outcome: {entry.OutCome}; P1 id: {entry.Player1UserId.ToHexString()}; P1 elo: {entry.Player1OldElo} -> {entry.Player1NewElo}; P2 id: {entry.Player2UserId.ToHexString()}; P2 elo: {entry.Player2OldElo} -> {entry.Player2NewElo}");
+				BotLogger.Instance.LogEvent(BotLogSource.Hota, $"Game history entry: {mainUser.DisplayName} ({evnt.MainHotaUserId.ToHexString()}). Entry: Game Id: {entry.GameId.ToHexString()}; Map Id: {entry.MapId.ToHexString()}; game time: {entry.GameTimeInUtc:yyyy-MM-dd HH:mm}; outcome: {entry.OutCome}; P1 id: {entry.Player1UserId.ToHexString()}; P1 elo: {entry.Player1OldElo} -> {entry.Player1NewElo}; P2 id: {entry.Player2UserId.ToHexString()}; P2 elo: {entry.Player2OldElo} -> {entry.Player2NewElo}");
 			}
 
 			HotaRepository.UpdateGameHistory(evnt.MainHotaUserId, entries);

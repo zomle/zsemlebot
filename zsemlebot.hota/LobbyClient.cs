@@ -233,6 +233,11 @@ namespace zsemlebot.hota
 			return true;
 		}
 
+		public void GetMapInfos(IReadOnlyList<uint> mapIds)
+		{
+			SendSocketRaw(new RequestMapInfoMessage(mapIds));
+		}
+
 		public void GetUserRep(uint userId)
 		{
 			SendSocketRaw(new RequestUserRepMessage(userId));
@@ -507,12 +512,18 @@ namespace zsemlebot.hota
 
 			var entryCount = dataPackage.ReadInt(4);
 
+			
 			for (int i = 0; i < entryCount; i++)
 			{
 				var mapEntryStart = PackageHeaderSize + i * MapEntryLength;
 
 				var mapId = dataPackage.ReadUInt(mapEntryStart);
 				var mapName = dataPackage.ReadString(mapEntryStart+4, 0x40);
+
+				var mapInfo = new MapInfo(mapId, mapName);
+				EventLogger.LogEvent(dataPackage.Type, "map info", $"Map id: {mapId.ToHexString()}; Name: {mapName}");
+
+				EnqueueEvent(mapInfo);
 			}
 		}
 
@@ -949,7 +960,6 @@ namespace zsemlebot.hota
 			Dispose(disposing: true);
 			GC.SuppressFinalize(this);
 		}
-
 
 		#endregion
 	}
