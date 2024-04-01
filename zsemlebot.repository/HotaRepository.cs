@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
@@ -115,9 +116,14 @@ namespace zsemlebot.repository
 
 		public void InvalidateGameHistory(HotaGamePlayer player)
 		{
-			player.HotaUser.GameHistoryUpToDate = false;
+			InvalidateGameHistory(player.HotaUser);
+		}
 
-			if (!HotaUsersById.TryGetValue(player.HotaUserId, out var mainUser))
+		public void InvalidateGameHistory(HotaUser hotaUser)
+		{
+			hotaUser.GameHistoryUpToDate = false;
+
+			if (!HotaUsersById.TryGetValue(hotaUser.HotaUserId, out var mainUser))
 			{
 				return;
 			}
