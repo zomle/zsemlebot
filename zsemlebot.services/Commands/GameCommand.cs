@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using zsemlebot.core.Domain;
+using zsemlebot.core.Log;
 using zsemlebot.repository;
 using zsemlebot.twitch;
 
@@ -69,7 +69,10 @@ namespace zsemlebot.services.Commands
 			else if (games.Count == 1)
 			{
 				var gameInfo = games[0];
-				if (gameInfo.Game.IsStarted && gameInfo.Game.JoinedPlayers.All(jp => jp.Color == null && jp.Faction == null))
+				bool isGameUnset = gameInfo.Game.Template == null && gameInfo.Game.JoinedPlayers.All(jp => jp.Color == null && jp.Faction == null);
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"{nameof(HandleGameCommandForHotaUsers)}(): Single game found. IsGameUnset: {isGameUnset}");
+
+				if (isGameUnset)
 				{
 					new Thread(() =>
 					{

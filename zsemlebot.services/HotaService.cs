@@ -323,6 +323,7 @@ namespace zsemlebot.services
 		{
 			if (Client?.Status != HotaClientStatus.Authenticated)
 			{
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"{nameof(RequestGameHistoryAndWait)}(): Client status is: {Client?.Status}");
 				return new GameHistoryResponse(Array.Empty<HotaUser>(), hotaUsers);
 			}
 
@@ -335,6 +336,7 @@ namespace zsemlebot.services
 
 			if (remainingUsers.Count == 0)
 			{
+				BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"{nameof(RequestGameHistoryAndWait)}(): Game history for all the requested users are up to date.");
 				return new GameHistoryResponse(Array.Empty<HotaUser>(), hotaUsers);
 			}
 
