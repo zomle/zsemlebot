@@ -6,9 +6,9 @@ using System.Threading;
 using zsemlebot.core;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
+using zsemlebot.core.Log;
 using zsemlebot.repository;
 using zsemlebot.services.Commands;
-using zsemlebot.services.Log;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services

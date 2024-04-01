@@ -1,4 +1,4 @@
-﻿namespace zsemlebot.services.Log
+﻿namespace zsemlebot.core.Log
 {
     public enum BotLogSource
     {

@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Text;
-using zsemlebot.core.Log;
 
-namespace zsemlebot.services.Log
+namespace zsemlebot.core.Log
 {
     public class BotLogger : TextLogger
     {

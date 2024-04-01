@@ -73,9 +73,7 @@ namespace zsemlebot.services.Commands
 				{
 					new Thread(() =>
 					{
-						HotaRepository.InvalidateGameHistory(gameInfo.UserOfInterest);
-
-						var response = HotaService.RequestGameHistoryAndWait(new[] { gameInfo.UserOfInterest });
+						var response = HotaService.RequestGameHistoryAndWait(new[] { gameInfo.UserOfInterest }, true);
 						if (response.UpdatedUsers.Count > 0)
 						{
 							var updatedUser = response.UpdatedUsers[0];

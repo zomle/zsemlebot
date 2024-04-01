@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using zsemlebot.core.Domain;
-using zsemlebot.services.Log;
+using zsemlebot.core.Log;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services.Commands

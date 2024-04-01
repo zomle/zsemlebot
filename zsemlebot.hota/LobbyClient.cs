@@ -11,6 +11,7 @@ using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.core.Extensions;
+using zsemlebot.core.Log;
 using zsemlebot.hota.Events;
 using zsemlebot.hota.Extensions;
 using zsemlebot.hota.Log;
@@ -189,9 +190,9 @@ namespace zsemlebot.hota
 				lock (padlock)
 				{
 					IncomingEventQueue.Clear();
+					CurrentlyRequestedGameHistoryUserId = null;
 				}
 
-				CurrentlyRequestedGameHistoryUserId = null;
 
 				Status = HotaClientStatus.Connected;
 
@@ -221,12 +222,29 @@ namespace zsemlebot.hota
 			SendSocketRaw(new RequestUserEloMessage(userId));
 		}
 
+		public void ResetGameHistoryRequest()
+		{
+			lock (padlock)
+			{
+				if (CurrentlyRequestedGameHistoryUserId != null)
+				{
+					BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"ResetGameHistoryRequest() - Resetting requested history for user ({CurrentlyRequestedGameHistoryUserId.Value.ToHexString()}).");
+					CurrentlyRequestedGameHistoryUserId = null;
+				}
+				else
+				{
+					BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"ResetGameHistoryRequest() - Requested history reset, but it was already null.");
+				}
+			}
+		}
+
 		public bool GetGameHistory(uint userId)
 		{
 			lock (padlock)
 			{
 				if (CurrentlyRequestedGameHistoryUserId != null)
 				{
+					BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"GetGameHistory() - Requested history for user ({userId.ToHexString()}), while another was in progress ({CurrentlyRequestedGameHistoryUserId.Value.ToHexString()}).");
 					return false;
 				}
 				CurrentlyRequestedGameHistoryUserId = userId;
@@ -611,9 +629,10 @@ namespace zsemlebot.hota
 						break;
 					}
 				}
+				
+				CurrentlyRequestedGameHistoryUserId = null;
 			}
 
-			CurrentlyRequestedGameHistoryUserId = null;
 
 			EventLogger.LogEvent(dataPackage.Type, "game history", $"Received game history for {mainUserId.ToHexString()}. Entry count: {gameHistory.Entries.Count}");
 			EnqueueEvent(gameHistory);

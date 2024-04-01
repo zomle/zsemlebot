@@ -3,17 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Threading.Channels;
 using zsemlebot.core;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.core.Extensions;
+using zsemlebot.core.Log;
 using zsemlebot.hota;
 using zsemlebot.hota.Events;
 using zsemlebot.repository;
-using zsemlebot.services.Log;
-using zsemlebot.twitch;
 
 namespace zsemlebot.services
 {
@@ -321,7 +319,7 @@ namespace zsemlebot.services
 			return new UserUpdateResponse(updatedUsers, remainingUsers);
 		}
 
-		public GameHistoryResponse RequestGameHistoryAndWait(IReadOnlyList<HotaUser> hotaUsers)
+		public GameHistoryResponse RequestGameHistoryAndWait(IReadOnlyList<HotaUser> hotaUsers, bool forceRequest = false)
 		{
 			if (Client?.Status != HotaClientStatus.Authenticated)
 			{
@@ -330,7 +328,7 @@ namespace zsemlebot.services
 
 			var requestTime = DateTime.UtcNow;
 
-			var relevantUsers = hotaUsers.Where(hu => !hu.GameHistoryUpToDate);
+			var relevantUsers = hotaUsers.Where(hu => forceRequest || !hu.GameHistoryUpToDate);
 			var remainingUsers = new List<HotaUser>(relevantUsers);
 			var updatedUsers = new List<HotaUser>();
 			var waitUntil = DateTime.UtcNow + Constants.RequestGameHistoryTimeOut;
@@ -350,17 +348,20 @@ namespace zsemlebot.services
 				{
 					if (Client.Status != HotaClientStatus.Authenticated)
 					{
+						Client.ResetGameHistoryRequest();
 						return new GameHistoryResponse(Array.Empty<HotaUser>(), hotaUsers);
 					}
 
 					if (DateTime.UtcNow > waitUntil)
 					{
+						Client.ResetGameHistoryRequest();
 						return new GameHistoryResponse(Array.Empty<HotaUser>(), hotaUsers);
 					}
 
 					var successfulRequest = Client.GetGameHistory(requestedUserIds[0]);
 					if (successfulRequest)
 					{
+						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"GameHistory: Requested user history: {requestedUserIds[0].ToHexString()}");
 						requestedUserIds.RemoveAt(0);
 					}
 

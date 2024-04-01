@@ -3,8 +3,8 @@ using System;
 using zsemlebot.core.Domain;
 using zsemlebot.repository;
 using zsemlebot.twitch;
-using zsemlebot.services.Log;
 using System.Linq;
+using zsemlebot.core.Log;
 
 namespace zsemlebot.services.Commands
 {

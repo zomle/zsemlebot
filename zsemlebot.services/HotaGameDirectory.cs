@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Enums;
-using zsemlebot.services.Log;
-using static System.Collections.Specialized.BitVector32;
+using zsemlebot.core.Log;
 
 namespace zsemlebot.services
 {

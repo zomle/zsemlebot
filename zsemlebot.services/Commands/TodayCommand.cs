@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using zsemlebot.core.Domain;
 using zsemlebot.core.Extensions;
+using zsemlebot.core.Log;
 using zsemlebot.repository;
-using zsemlebot.services.Log;
 using zsemlebot.twitch;
 
 namespace zsemlebot.services.Commands
