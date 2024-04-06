@@ -2,14 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using zsemlebot.core;
 using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.core.Log;
 using zsemlebot.repository;
+using zsemlebot.repository.Models;
 using zsemlebot.services.Commands;
 using zsemlebot.twitch;
+using zsemlebot.twitch.Log;
 
 namespace zsemlebot.services
 {
@@ -265,7 +268,7 @@ namespace zsemlebot.services
             if (userId != null && message.StartsWith('!'))
             {
                 var twitchUser = TwitchRepository.GetUser((int)userId);
-                var cmdTokens = message.Split(' ', 2);
+                var cmdTokens = message.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
                 var messageId = rawMessage.GetTagValue("id");
 
 				var sender = new MessageSource(twitchUser);
@@ -284,7 +287,7 @@ namespace zsemlebot.services
 					}
 				}
 
-				HandleCommand(messageId, channel, sender, cmdTokens[0], cmdTokens.Length > 1 ? cmdTokens[1] : null);
+				HandleCommand(messageId, channel, sender, cmdTokens[0], cmdTokens.Length > 1 && !string.IsNullOrWhiteSpace(cmdTokens[1]) ? cmdTokens[1] : null);
             }
         }
 
@@ -346,7 +349,41 @@ namespace zsemlebot.services
             }
         }
 
-        public void SendCommand(string rawCommandText)
+		public async void UpdateUserInfo()
+		{
+			var client = new HelixClient();
+
+			var joinedChannels = BotRepository.Instance.ListJoinedChannels();
+			var userIds = joinedChannels.Select(jc => jc.TwitchUserId).ToList();
+
+			BotLogger.Instance.LogEvent(BotLogSource.Twitch, $"Requesting user info for the following ids({userIds.Count}): {string.Join(", ", userIds.OrderBy(u => u))}");
+
+			var updatedUserInfo = await client.GetUserInfo(userIds);
+			BotLogger.Instance.LogEvent(BotLogSource.Twitch, $"Received user info for {updatedUserInfo.Count} ids.");
+
+			foreach (var joinedChannel in joinedChannels) 
+			{
+				if (updatedUserInfo.TryGetValue(joinedChannel.TwitchUserId, out var newDisplayName))
+				{
+					if (string.Equals(newDisplayName, joinedChannel.DisplayName, StringComparison.CurrentCultureIgnoreCase))
+					{
+						continue;
+					}
+					else
+					{
+						BotLogger.Instance.LogEvent(BotLogSource.Twitch, $"Twitch user name updated ({joinedChannel.TwitchUserId}): {joinedChannel.DisplayName} -> {newDisplayName}");
+
+						TwitchRepository.UpdateTwitchUserName(joinedChannel.TwitchUserId, newDisplayName);
+						
+						TrySendPartCommand(joinedChannel.DisplayName);
+						joinedChannel.DisplayName = newDisplayName;
+						TrySendJoinCommand(joinedChannel.DisplayName);						
+					}
+				}
+			}
+		}
+
+		public void SendCommand(string rawCommandText)
         {
             Client?.SendRawCommand(rawCommandText);
         }

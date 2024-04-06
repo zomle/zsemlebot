@@ -53,7 +53,8 @@ namespace zsemlebot.wpf.ViewModels
 
         public ICommand ConnectCommand { get; }
         public ICommand ReconnectCommand { get; }
-        public ICommand SendRawCommand { get; }
+		public ICommand GetUserInfoCommand { get; }
+		public ICommand SendRawCommand { get; }
         public ICommand ClearRawCommand { get; }
 
         public ObservableCollection<ChatMessage> Messages { get; }
@@ -66,7 +67,6 @@ namespace zsemlebot.wpf.ViewModels
 
             rawCommandText = string.Empty;
             lastMessageReceivedAt = "-";
-
 
             TwitchService = twitchService;
 
@@ -88,7 +88,11 @@ namespace zsemlebot.wpf.ViewModels
 
             ClearRawCommand = new CommandHandler(
                () => RawCommandText = string.Empty);
-        }
+
+			GetUserInfoCommand = new CommandHandler(
+				() => TwitchService.UpdateUserInfo()
+				);
+		}
 
         private void TwitchService_StatusChanged(object? sender, TwitchStatusChangedArgs e)
         {
