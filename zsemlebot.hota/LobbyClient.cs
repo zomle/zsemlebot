@@ -24,6 +24,7 @@ namespace zsemlebot.hota
 	{
 		private readonly TimeSpan PingFrequency = TimeSpan.FromSeconds(30);
 		private readonly TimeSpan MaxWaitInConnectedState = TimeSpan.FromMinutes(1);
+		private readonly TimeSpan IdleTimeBeforeReconnect = TimeSpan.FromMinutes(5);
 
 		#region Events
 		private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -72,7 +73,9 @@ namespace zsemlebot.hota
 		}
 		private DateTime LastStatusChangedAt { get; set; }
 
-		private int? MinimumClientVersion { get; set; }
+		public int? MinimumClientVersion { get; private set; }
+
+		private uint OwnUserId { get; set; }
 
 		private Socket? Socket { get; set; }
 
@@ -195,6 +198,8 @@ namespace zsemlebot.hota
 
 
 				Status = HotaClientStatus.Connected;
+				
+				StartPingThread();
 
 				SendLoginMessage();
 
@@ -210,6 +215,11 @@ namespace zsemlebot.hota
 				Status = HotaClientStatus.Disconnected;
 				return false;
 			}
+		}
+
+		public void Disconnect()
+		{
+			SendExitLobby();
 		}
 
 		public void SendMessage(uint userId, string message)
@@ -299,11 +309,19 @@ namespace zsemlebot.hota
 		{
 			try
 			{
-				while (true)
+				while (!disposedValue)
 				{
 					if (Status == HotaClientStatus.Connected && DateTime.Now - LastStatusChangedAt > MaxWaitInConnectedState)
 					{
 						Status = HotaClientStatus.Disconnected;
+						break;
+					}
+
+					var timeSinceLastMessage = DateTime.Now - LastMessageReceivedAt;
+					if (Status == HotaClientStatus.Authenticated && timeSinceLastMessage > IdleTimeBeforeReconnect) 
+					{
+						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Haven't received any messages for {timeSinceLastMessage}, initiating reconnection.");
+						SendExitLobby();
 						break;
 					}
 
@@ -343,6 +361,12 @@ namespace zsemlebot.hota
 			SendSocketRaw(new MaybePingMessage());
 		}
 
+		private void SendExitLobby()
+		{
+			SendSocketRaw(new ExitLobbyMessage(OwnUserId));
+			Status = HotaClientStatus.Disconnected;
+		}
+
 		private void SendSocketRaw(HotaMessageBase message)
 		{
 			if (Socket == null || Socket.Connected == false)
@@ -375,7 +399,7 @@ namespace zsemlebot.hota
 			{
 				var buffer = new CircularByteBuffer(1024 * 1024);
 
-				while (true)
+				while (!disposedValue)
 				{
 					if (Socket == null)
 					{
@@ -787,6 +811,8 @@ namespace zsemlebot.hota
 			EventLogger.LogEvent(dataPackage.Type, "own info", $"user id: {userId.ToHexString()}; name: {userName}; elo: {userElo}; rep: {userRep}");
 
 			ownInfoReceived?.Invoke(this, new OwnInfoReceivedArgs(userName, userId));
+
+			OwnUserId = userId;
 		}
 
 		private void ProcessGameRoomItem(DataPackage dataPackage)
@@ -903,7 +929,6 @@ namespace zsemlebot.hota
 				case 1:
 					EventLogger.LogEvent(dataPackage.Type, "login ok");
 					MinimumClientVersion = null;
-					StartPingThread();
 					return;
 
 				case 2:
@@ -939,8 +964,14 @@ namespace zsemlebot.hota
 		{
 			if (!disposedValue)
 			{
+				disposedValue = true;
+
 				if (disposing)
 				{
+					Status = HotaClientStatus.Disposing;
+
+					Thread.Sleep(1000);
+
 					SafeAbort(PingThread);
 					PingThread = null;
 
@@ -958,9 +989,7 @@ namespace zsemlebot.hota
 
 					SafeDispose(EventLogger);
 					EventLogger = HotaEventLogger.Null;
-				}
-
-				disposedValue = true;
+				}				
 			}
 		}
 

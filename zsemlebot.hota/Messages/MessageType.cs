@@ -10,5 +10,6 @@
         MaybePing = 0x95,
 		RequestGameHistory = 0x97,
 		RequestMapInfo = 0x99,
+		ExitLobby = 0x52
 	}
 }

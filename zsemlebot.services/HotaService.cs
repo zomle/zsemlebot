@@ -73,6 +73,7 @@ namespace zsemlebot.services
 
 		private Thread HandleMessagesThread { get; set; }
 		private int ReconnectCount { get; set; }
+		private bool IsReconnecting { get; set; }
 
 		private bool PauseUpdateNotifications { get; set; }
 
@@ -154,6 +155,20 @@ namespace zsemlebot.services
 					else if (Client.Status == HotaClientStatus.Disconnected)
 					{
 						Debug.WriteLine("Hota - HandleMessagesWorker - Disconnected");
+						if (Client.MinimumClientVersion != null)
+						{
+							Thread.Sleep(5000);
+							continue;
+						}
+						
+						if (IsReconnecting)
+						{
+							Thread.Sleep(750);
+							continue;
+						}
+
+						Thread.Sleep(GetWaitBetweenReconnects());
+
 						if (!Reconnect())
 						{
 							ReconnectCount++;
@@ -195,26 +210,40 @@ namespace zsemlebot.services
 
 		public bool Reconnect()
 		{
-			if (Client == null)
+			try
 			{
-				return Connect();
+				IsReconnecting = true;
+
+				if (Client == null)
+				{
+					return Connect();
+				}
+
+				if (Client.Status == HotaClientStatus.Authenticated)
+				{
+					Client.Disconnect();
+					Client.Dispose();
+					RemoveEventHandlers(Client);
+					Client = null;
+				}
+
+				var tmpClient = new LobbyClient();
+				AddEventHandlers(tmpClient);
+
+				var reconnected = tmpClient.Connect();
+				if (reconnected)
+				{
+					Client = tmpClient;
+					return true;
+				}
+				else
+				{
+					return false;
+				}
 			}
-
-			var tmpClient = new LobbyClient();
-			AddEventHandlers(tmpClient);
-
-			var reconnected = tmpClient.Connect();
-			if (reconnected)
+			finally
 			{
-				RemoveEventHandlers(Client);
-				Client.Dispose();
-
-				Client = tmpClient;
-				return true;
-			}
-			else
-			{
-				return false;
+				IsReconnecting = false;
 			}
 		}
 
@@ -517,10 +546,10 @@ namespace zsemlebot.services
 				case GameHistory history:
 					HandleGameHistory(history);
 					break;
-				
+
 				case MapInfo mapInfo:
 					HandleMapInfo(mapInfo);
-					break;			
+					break;
 			}
 		}
 

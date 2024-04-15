@@ -9,6 +9,7 @@ namespace zsemlebot.core.Enums
         Connected,
         Authenticated,
         Disconnected,
-        ObsoleteClient
+        ObsoleteClient,
+		Disposing
     }
 }
