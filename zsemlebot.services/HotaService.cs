@@ -81,9 +81,11 @@ namespace zsemlebot.services
 		private static BotRepository BotRepository { get { return BotRepository.Instance; } }
 		private static TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
 
+		private BotService BotService { get; }
+
 		private static readonly int[] WaitTimesBetweenReconnect = { 2, 5, 10, 15, 30 };
 
-		public HotaService()
+		public HotaService(BotService botService)
 		{
 			ReconnectCount = 0;
 			OnlineUsers = new Dictionary<uint, HotaUser>(5000);
@@ -91,6 +93,8 @@ namespace zsemlebot.services
 
 			HandleMessagesThread = new Thread(HandleMessagesWorker);
 			HandleMessagesThread.Start();
+
+			BotService = botService;
 		}
 		public void Test()
 		{
@@ -743,6 +747,10 @@ namespace zsemlebot.services
 				case Constants.Command_LinkMe:
 					HandleLinkMeCommand(hotaUser, parameters);
 					break;
+
+				case Constants.Command_GetMyIp:
+					HandleGetMyIpCommand(hotaUser, parameters);
+					break;
 			}
 		}
 
@@ -789,6 +797,39 @@ namespace zsemlebot.services
 
 			//send a message to the user
 			SendChatMessage(source.HotaUserId, MessageTemplates.UserLinkTwitchMessage(authCode, twitchUserName, Config.Instance.Twitch.AdminChannel));
+		}
+
+		private void HandleGetMyIpCommand(HotaUser user, string? parameter)
+		{
+			var linkedUsers = BotRepository.GetLinksForHotaUser(user);
+			var senderIsAdmin = linkedUsers.LinkedTwitchUsers.Any(tu => tu.TwitchUserId == Config.Instance.Twitch.AdminUserId);
+
+			if (!senderIsAdmin)
+			{
+				return;
+			}
+
+			new Thread(async () =>
+			{
+				if (BotService == null)
+				{
+					return;
+				}
+				try
+				{
+					var publicIp = await BotService.GetPublicIp();
+					SendChatMessage(user.HotaUserId, $"IP address: {publicIp}");
+					BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Public IP address: {publicIp}");
+				} 
+				catch (Exception e)
+				{
+					try
+					{
+						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Exception while getting public IP: {e.Message}");
+					}
+					catch { }
+				}
+			}).Start();
 		}
 
 		private void InvokeUserListChangedEvent()

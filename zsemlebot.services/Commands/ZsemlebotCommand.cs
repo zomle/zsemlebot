@@ -12,7 +12,12 @@ namespace zsemlebot.services.Commands
 		public override string Command { get { return Constants.Command_Zsemlebot; } }
 
 		public ZsemlebotCommand(TwitchService twitchService, HotaService hotaService)
-			: base(twitchService, hotaService)
+			: this(twitchService, hotaService, null)
+		{
+		}
+
+		public ZsemlebotCommand(TwitchService twitchService, HotaService hotaService, BotService? botService)
+			: base(twitchService, hotaService, botService)
 		{
 		}
 

@@ -1,27 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using zsemlebot.core;
 
 namespace zsemlebot.twitch
 {
 	public class HelixClient
 	{
-		private const string AccessTokenUrl = "https://id.twitch.tv/oauth2/token";
-		private AccessTokenInfo AccessToken { get; set; }
+		private const string AppAccessTokenUrl = "https://id.twitch.tv/oauth2/token";
+
+		private AccessTokenInfo AppAccessToken { get; set; }
+
 		public HelixClient()
 		{
 		}
 
-		public async Task RetrieveAccessToken()
+		public async Task RetrieveAppAccessToken()
 		{
 			using var client = new HttpClient();
 			var content = new FormUrlEncodedContent(new[]
@@ -31,13 +28,13 @@ namespace zsemlebot.twitch
 				new KeyValuePair<string, string>("grant_type", "client_credentials")
 			});
 
-			var response = await client.PostAsync(AccessTokenUrl, content);
-			AccessToken = await response.Content.ReadFromJsonAsync<AccessTokenInfo>();
+			var response = await client.PostAsync(AppAccessTokenUrl, content);
+			AppAccessToken = await response.Content.ReadFromJsonAsync<AccessTokenInfo>();
 		}
 
 		public async Task<Dictionary<int, string>> GetUserInfo(IReadOnlyList<int> twitchUserIds)
 		{
-			await RetrieveAccessToken();
+			await RetrieveAppAccessToken();
 
 			using var client = new HttpClient();
 
@@ -50,7 +47,7 @@ namespace zsemlebot.twitch
 				Method = HttpMethod.Get,
 			};
 
-			request.Headers.Add("Authorization", $"Bearer {AccessToken.access_token}");
+			request.Headers.Add("Authorization", $"Bearer {AppAccessToken.access_token}");
 			request.Headers.Add("Client-Id", Config.Instance.Twitch.ClientId);
 			
 			var response = client.Send(request);

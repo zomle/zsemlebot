@@ -14,15 +14,22 @@ namespace zsemlebot.services.Commands
 
 		protected TwitchService TwitchService { get; }
 		protected HotaService HotaService { get; }
+		protected BotService? BotService { get; }
 
 		protected BotRepository BotRepository { get { return BotRepository.Instance; } }
 		protected TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
 		protected HotaRepository HotaRepository { get { return HotaRepository.Instance; } }
 
 		protected TwitchCommand(TwitchService twitchService, HotaService hotaService)
+			: this(twitchService, hotaService, null)
+		{
+		}
+
+		protected TwitchCommand(TwitchService twitchService, HotaService hotaService, BotService? botService)
 		{
 			TwitchService = twitchService;
 			HotaService = hotaService;
+			BotService = botService;
 		}
 
 		public void Handle(string? sourceMessageId, string channel, MessageSource sender, string? parameters)
@@ -52,7 +59,7 @@ namespace zsemlebot.services.Commands
 				return;
 			}
 
-			HandleCore(sourceMessageId, channel, sender, parameters);			
+			HandleCore(sourceMessageId, channel, sender, parameters);
 		}
 
 		protected abstract void HandleCore(string? sourceMessageId, string channel, MessageSource sender, string? parameters);

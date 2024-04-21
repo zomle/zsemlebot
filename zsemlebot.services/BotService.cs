@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using zsemlebot.core.Domain;
 using zsemlebot.repository;
 
@@ -10,6 +11,13 @@ namespace zsemlebot.services
 	{
 		private TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
 		private BotRepository BotRepository { get { return BotRepository.Instance; } }
+
+		private static readonly HttpClient PublicIpHttpClient;
+
+		static BotService()
+		{
+			PublicIpHttpClient = new HttpClient() { BaseAddress = new Uri("https://api.ipify.org/") };
+		}
 
 		public IReadOnlyList<ZsemlebotSetting> ListSettings()
 		{
@@ -44,6 +52,12 @@ namespace zsemlebot.services
 		{
 			var userLinks = BotRepository.ListUserLinks();
 			return userLinks;
+		}
+
+		public async Task<string> GetPublicIp()
+		{
+			var response = await PublicIpHttpClient.GetStringAsync((string?)null);
+			return response;
 		}
 
 		#region IDisposable implementation

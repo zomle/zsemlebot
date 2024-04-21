@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -9,125 +8,123 @@ using zsemlebot.core.Enums;
 using zsemlebot.core.EventArgs;
 using zsemlebot.core.Log;
 using zsemlebot.repository;
-using zsemlebot.repository.Models;
 using zsemlebot.services.Commands;
 using zsemlebot.twitch;
-using zsemlebot.twitch.Log;
 
 namespace zsemlebot.services
 {
-    public partial class TwitchService : IDisposable
-    {
-        #region Events
-        private EventHandler<MessageReceivedArgs>? messageReceived;
-        public event EventHandler<MessageReceivedArgs> MessageReceived
-        {
-            add { messageReceived += value; }
-            remove { messageReceived -= value; }
-        }
+	public partial class TwitchService : IDisposable
+	{
+		#region Events
+		private EventHandler<MessageReceivedArgs>? messageReceived;
+		public event EventHandler<MessageReceivedArgs> MessageReceived
+		{
+			add { messageReceived += value; }
+			remove { messageReceived -= value; }
+		}
 
-        private EventHandler<TwitchStatusChangedArgs>? statusChanged;
-        public event EventHandler<TwitchStatusChangedArgs> StatusChanged
-        {
-            add { statusChanged += value; }
-            remove { statusChanged -= value; }
-        }
+		private EventHandler<TwitchStatusChangedArgs>? statusChanged;
+		public event EventHandler<TwitchStatusChangedArgs> StatusChanged
+		{
+			add { statusChanged += value; }
+			remove { statusChanged -= value; }
+		}
 
-        private EventHandler<PrivMsgReceivedArgs>? privmsgReceived;
-        public event EventHandler<PrivMsgReceivedArgs> PrivmsgReceived
-        {
-            add { privmsgReceived += value; }
-            remove { privmsgReceived -= value; }
-        }
-        #endregion
+		private EventHandler<PrivMsgReceivedArgs>? privmsgReceived;
+		public event EventHandler<PrivMsgReceivedArgs> PrivmsgReceived
+		{
+			add { privmsgReceived += value; }
+			remove { privmsgReceived -= value; }
+		}
+		#endregion
 
 		public DateTime LastMessageReceivedAt { get; private set; }
 		public TwitchStatus CurrentStatus { get; private set; }
 
 		private HotaService HotaService { get; }
 
-        private IrcClient? Client { get; set; }
-        private Thread HandleMessagesThread { get; set; }
-        private int ReconnectCount { get; set; }
+		private IrcClient? Client { get; set; }
+		private Thread HandleMessagesThread { get; set; }
+		private int ReconnectCount { get; set; }
 
 		private Dictionary<string, Queue<DateTime>> RecentUserCommands { get; }
 
-        private static TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
+		private static TwitchRepository TwitchRepository { get { return TwitchRepository.Instance; } }
 
-        private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
+		private static readonly int[] WaitTimesBetweenReconnect = { 0, 1, 2, 4, 8, 16 };
 
-        public TwitchService(HotaService hotaService)
-        {
+		public TwitchService(HotaService hotaService)
+		{
 			RecentUserCommands = new Dictionary<string, Queue<DateTime>>();
 
 			ReconnectCount = 0;
 
-            HandleMessagesThread = new Thread(HandleMessagesWorker);
-            HandleMessagesThread.Start();
-            HotaService = hotaService;
-        }
+			HandleMessagesThread = new Thread(HandleMessagesWorker);
+			HandleMessagesThread.Start();
+			HotaService = hotaService;
+		}
 
-        public bool Connect()
-        {
-            if (Client != null)
-            {
-                return true;
-            }
+		public bool Connect()
+		{
+			if (Client != null)
+			{
+				return true;
+			}
 
-            Client = new IrcClient();
-            Client.StatusChanged += Client_StatusChanged;
-            Client.MessageReceived += Client_MessageReceived;
+			Client = new IrcClient();
+			Client.StatusChanged += Client_StatusChanged;
+			Client.MessageReceived += Client_MessageReceived;
 			RecentUserCommands.Clear();
 
 			var connected = Client.Connect();
-            if (!connected)
-            {
-                Client.Dispose();
-                Client = null;
+			if (!connected)
+			{
+				Client.Dispose();
+				Client = null;
 
-                statusChanged?.Invoke(this, new TwitchStatusChangedArgs(TwitchStatus.Initialized));
-                return false;
-            }
-            return true;
-        }
+				statusChanged?.Invoke(this, new TwitchStatusChangedArgs(TwitchStatus.Initialized));
+				return false;
+			}
+			return true;
+		}
 
-        public void HandleMessagesWorker()
-        {
-            try
-            {
-                while (true)
-                {
-                    if (Client == null || Client.Status == TwitchStatus.Initialized)
-                    {
-                        Thread.Sleep(750);
-                        continue;
-                    }
-                    else if (Client.Status == TwitchStatus.Disconnected)
-                    {
-                        Debug.WriteLine("HandleMessagesWorker - Disconnected");
-                        if (!Reconnect())
-                        {
-                            ReconnectCount++;
-                            Thread.Sleep(GetWaitBetweenReconnects());
-                        }
-                        else
-                        {
-                            ReconnectCount = 0;
-                        }
-                        continue;
-                    }
-                    else if (Client.Status == TwitchStatus.Connecting)
-                    {
-                        Debug.WriteLine("HandleMessagesWorker - Connecting");
-                        Thread.Sleep(1000);
-                        continue;
-                    }
+		public void HandleMessagesWorker()
+		{
+			try
+			{
+				while (true)
+				{
+					if (Client == null || Client.Status == TwitchStatus.Initialized)
+					{
+						Thread.Sleep(750);
+						continue;
+					}
+					else if (Client.Status == TwitchStatus.Disconnected)
+					{
+						Debug.WriteLine("HandleMessagesWorker - Disconnected");
+						if (!Reconnect())
+						{
+							ReconnectCount++;
+							Thread.Sleep(GetWaitBetweenReconnects());
+						}
+						else
+						{
+							ReconnectCount = 0;
+						}
+						continue;
+					}
+					else if (Client.Status == TwitchStatus.Connecting)
+					{
+						Debug.WriteLine("HandleMessagesWorker - Connecting");
+						Thread.Sleep(1000);
+						continue;
+					}
 
-                    if (!Client.HasNewMessage())
-                    {
-                        Thread.Sleep(100);
-                        continue;
-                    }
+					if (!Client.HasNewMessage())
+					{
+						Thread.Sleep(100);
+						continue;
+					}
 
 					try
 					{
@@ -138,40 +135,40 @@ namespace zsemlebot.services
 					{
 						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Exception happened while handling event: {e.Message}; {e.StackTrace}");
 					}
-                }
-            }
-            catch (ThreadInterruptedException)
-            {
-            }
-        }
+				}
+			}
+			catch (ThreadInterruptedException)
+			{
+			}
+		}
 
-        public bool Reconnect()
-        {
-            if (Client == null)
-            {
-                return Connect();
-            }
+		public bool Reconnect()
+		{
+			if (Client == null)
+			{
+				return Connect();
+			}
 
-            var tmpClient = new IrcClient();
-            tmpClient.StatusChanged += Client_StatusChanged;
-            tmpClient.MessageReceived += Client_MessageReceived;
+			var tmpClient = new IrcClient();
+			tmpClient.StatusChanged += Client_StatusChanged;
+			tmpClient.MessageReceived += Client_MessageReceived;
 
 			var reconnected = tmpClient.Connect();
-            if (reconnected)
-            {
-                Client.StatusChanged -= Client_StatusChanged;
-                Client.MessageReceived -= Client_MessageReceived;
-                Client.Dispose();
+			if (reconnected)
+			{
+				Client.StatusChanged -= Client_StatusChanged;
+				Client.MessageReceived -= Client_MessageReceived;
+				Client.Dispose();
 
-                Client = tmpClient;
+				Client = tmpClient;
 				RecentUserCommands.Clear();
 				return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+			}
+			else
+			{
+				return false;
+			}
+		}
 
 		public bool IsUserSpammingCommands(string channel, string displayName)
 		{
@@ -210,66 +207,66 @@ namespace zsemlebot.services
 		}
 
 		public void SendChatMessage(string channel, string message)
-        {
+		{
 			privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, $"({Config.Instance.Twitch.User})", message));
 			Client?.SendPrivMsg(channel, message);
-        }
+		}
 
-        public void SendChatMessage(string? parentMessageId, string channel, string message)
-        {
-            if (parentMessageId == null)
-            {
-                SendChatMessage(channel, message);
-            }
-            else
-            {
+		public void SendChatMessage(string? parentMessageId, string channel, string message)
+		{
+			if (parentMessageId == null)
+			{
+				SendChatMessage(channel, message);
+			}
+			else
+			{
 				privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, $"({Config.Instance.Twitch.User})", message));
 				Client?.SendPrivMsg(parentMessageId, channel, message);
-            }
-        }
+			}
+		}
 
-        private TimeSpan GetWaitBetweenReconnects()
-        {
-            int index = ReconnectCount >= WaitTimesBetweenReconnect.Length ? WaitTimesBetweenReconnect.Length - 1 : ReconnectCount;
-            return TimeSpan.FromSeconds(WaitTimesBetweenReconnect[index]);
-        }
+		private TimeSpan GetWaitBetweenReconnects()
+		{
+			int index = ReconnectCount >= WaitTimesBetweenReconnect.Length ? WaitTimesBetweenReconnect.Length - 1 : ReconnectCount;
+			return TimeSpan.FromSeconds(WaitTimesBetweenReconnect[index]);
+		}
 
-        private void HandleMessage(Message? message)
-        {
-            if (message == null)
-            {
-                return;
-            }
+		private void HandleMessage(Message? message)
+		{
+			if (message == null)
+			{
+				return;
+			}
 
-            switch (message.Command)
-            {
-                case "PRIVMSG":
-                    HandlePrivMsg(message);
-                    break;
-            }
-        }
+			switch (message.Command)
+			{
+				case "PRIVMSG":
+					HandlePrivMsg(message);
+					break;
+			}
+		}
 
-        private void HandlePrivMsg(Message rawMessage)
-        {
-            var displayName = rawMessage.SourceUserName;
-            var userId = rawMessage.SourceUserId;
+		private void HandlePrivMsg(Message rawMessage)
+		{
+			var displayName = rawMessage.SourceUserName;
+			var userId = rawMessage.SourceUserId;
 
 			if (displayName != null && userId != null)
-            {
-                TwitchRepository.UpdateTwitchUserName(userId.Value, displayName);
-            }
+			{
+				TwitchRepository.UpdateTwitchUserName(userId.Value, displayName);
+			}
 
-            var tokens = rawMessage.Params.Split(' ', 2);
-            var channel = tokens[0];
-            var message = tokens[1][1..];
+			var tokens = rawMessage.Params.Split(' ', 2);
+			var channel = tokens[0];
+			var message = tokens[1][1..];
 
-            privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, displayName ?? "-", message));
+			privmsgReceived?.Invoke(this, new PrivMsgReceivedArgs(channel, displayName ?? "-", message));
 
-            if (userId != null && message.StartsWith('!'))
-            {
-                var twitchUser = TwitchRepository.GetUser((int)userId);
-                var cmdTokens = message.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                var messageId = rawMessage.GetTagValue("id");
+			if (userId != null && message.StartsWith('!'))
+			{
+				var twitchUser = TwitchRepository.GetUser((int)userId);
+				var cmdTokens = message.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+				var messageId = rawMessage.GetTagValue("id");
 
 				var sender = new MessageSource(twitchUser);
 				foreach (var tag in rawMessage.Tags.Values)
@@ -288,8 +285,8 @@ namespace zsemlebot.services
 				}
 
 				HandleCommand(messageId, channel, sender, cmdTokens[0], cmdTokens.Length > 1 && !string.IsNullOrWhiteSpace(cmdTokens[1]) ? cmdTokens[1] : null);
-            }
-        }
+			}
+		}
 
 		private void HandleCommand(string? sourceMessageId, string channel, MessageSource sender, string commandText, string? parameters)
 		{
@@ -310,7 +307,7 @@ namespace zsemlebot.services
 				Constants.Command_Streak => new StreakCommand(this, HotaService),
 				Constants.Command_Today => new TodayCommand(this, HotaService),
 				Constants.Command_UnLinkMe => new UnlinkMeCommand(this, HotaService),
-				Constants.Command_Zsemlebot => new ZsemlebotCommand(this, HotaService),
+				Constants.Command_Zsemlebot => new ZsemlebotCommand(this, HotaService),				
 				_ => null,
 			};
 
@@ -318,24 +315,24 @@ namespace zsemlebot.services
 		}
 
 		private void Client_MessageReceived(object? sender, MessageReceivedArgs e)
-        {
+		{
 			LastMessageReceivedAt = DateTime.Now;
 
 			messageReceived?.Invoke(sender, e);
-        }
+		}
 
-        private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
-        {
+		private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
+		{
 			CurrentStatus = e.NewStatus;
 
-            statusChanged?.Invoke(sender, e);
+			statusChanged?.Invoke(sender, e);
 
-            if (e.NewStatus == TwitchStatus.Authenticated)
-            {
-                var channel = $"#{Config.Instance.Twitch.AdminChannel}";
+			if (e.NewStatus == TwitchStatus.Authenticated)
+			{
+				var channel = $"#{Config.Instance.Twitch.AdminChannel}";
 
-                Client?.JoinChannel(channel);
-                Client?.SendPrivMsg(channel, "Arrived");
+				Client?.JoinChannel(channel);
+				Client?.SendPrivMsg(channel, "Arrived");
 
 				if (!Config.Instance.Global.IsTestMode)
 				{
@@ -346,8 +343,8 @@ namespace zsemlebot.services
 						Client?.JoinChannel(channelName);
 					}
 				}
-            }
-        }
+			}
+		}
 
 		public async void UpdateUserInfo()
 		{
@@ -384,9 +381,9 @@ namespace zsemlebot.services
 		}
 
 		public void SendCommand(string rawCommandText)
-        {
-            Client?.SendRawCommand(rawCommandText);
-        }
+		{
+			Client?.SendRawCommand(rawCommandText);
+		}
 
 		public bool TrySendJoinCommand(string channel)
 		{
@@ -422,42 +419,42 @@ namespace zsemlebot.services
 			return true;
 		}
 
-        #region IDisposable implementation
-        private bool disposedValue;
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    try
-                    {
-                        HandleMessagesThread?.Interrupt();
-                    }
-                    catch { }
+		#region IDisposable implementation
+		private bool disposedValue;
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+					try
+					{
+						HandleMessagesThread?.Interrupt();
+					}
+					catch { }
 
-                    try
-                    {
-                        if (Client != null)
-                        {
-                            Client.StatusChanged -= Client_StatusChanged;
-                            Client.MessageReceived -= Client_MessageReceived;
-                            Client.Dispose();
-                        }
-                    }
-                    catch { }
-                }
+					try
+					{
+						if (Client != null)
+						{
+							Client.StatusChanged -= Client_StatusChanged;
+							Client.MessageReceived -= Client_MessageReceived;
+							Client.Dispose();
+						}
+					}
+					catch { }
+				}
 
-                disposedValue = true;
-            }
-        }
+				disposedValue = true;
+			}
+		}
 
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-        #endregion
-    }
+		public void Dispose()
+		{
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
+		}
+		#endregion
+	}
 }

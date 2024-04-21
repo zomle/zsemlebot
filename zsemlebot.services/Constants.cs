@@ -22,6 +22,11 @@ namespace zsemlebot.services
 		public const string Command_Game = "!game";
 
 		/// <summary>
+		/// Usage 1: !getmyip
+		/// </summary>
+		public const string Command_GetMyIp = "!getmyip";
+
+		/// <summary>
 		/// Usage: !ignore <add|del> <twitchusername>
 		/// Usage: !ignore list
 		/// </summary>

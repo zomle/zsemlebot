@@ -25,9 +25,9 @@ namespace zsemlebot.wpf
 
             BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Config loaded. Twitch user: {Config.Instance.Twitch.User}; Hota user: {Config.Instance.Hota.User}; Hota client version: {Config.Instance.Hota.ClientVersion}");
 
-            HotaService = new HotaService();
+			BotService = new BotService();
+			HotaService = new HotaService(BotService);
             TwitchService = new TwitchService(HotaService);
-            BotService = new BotService();
 
             DataContext = new MainViewModel(TwitchService, HotaService, BotService);
 		}

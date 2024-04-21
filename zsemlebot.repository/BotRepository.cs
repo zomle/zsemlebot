@@ -260,6 +260,28 @@ namespace zsemlebot.repository
 			return GetLinksForTwitchUser(twitchUser);
 		}
 
+		public HotaUserLinks GetLinksForHotaUser(HotaUser hotaUser)
+		{
+			if (!LinksByHotaUserId.TryGetValue(hotaUser.HotaUserId, out var links))
+			{
+				return new HotaUserLinks(hotaUser, Array.Empty<TwitchUser>());
+			}
+
+			var linkedTwitchUsers = new List<TwitchUser>();
+			foreach (var link in links)
+			{
+				var twitchUser = TwitchRepository.Instance.GetUser(link.TwitchUserId);
+				if (twitchUser == null)
+				{
+					continue;
+				}
+
+				linkedTwitchUsers.Add(twitchUser);
+			}
+
+			return new HotaUserLinks(hotaUser, linkedTwitchUsers);
+		}
+
 		public TwitchUserLinks GetLinksForTwitchUser(TwitchUser twitchUser)
 		{
 			if (!LinksByTwitchUserId.TryGetValue(twitchUser.TwitchUserId, out var links))
