@@ -311,6 +311,11 @@ namespace zsemlebot.services
 				_ => null,
 			};
 
+			if (command != null)
+			{
+				parameters = parameters?.Replace("\udb40", "")?.Trim();
+			}
+
 			command?.Handle(sourceMessageId, channel, sender, parameters);
 		}
 
