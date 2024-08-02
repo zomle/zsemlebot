@@ -403,7 +403,7 @@ namespace zsemlebot.services
 
 		public static string StatusMessage(TwitchStatus twitchStatus, DateTime twitchLastMessageAt, HotaClientStatus hotaStatus, DateTime hotaLastMessageAt)
 		{
-			return $"Status: Twitch: {twitchStatus}; last message at: {twitchLastMessageAt:yyyy-MM-ss HH:mm:ss} ({(DateTime.Now - twitchLastMessageAt).TotalSeconds:0.0} secs ago). Hota: {hotaStatus}; last message at: {hotaLastMessageAt:yyyy-MM-ss HH:mm:ss} ({ (DateTime.Now - hotaLastMessageAt).TotalSeconds:0.0} secs ago)";
+			return $"Status: Twitch: {twitchStatus}; last message at: {twitchLastMessageAt:yyyy-MM-dd HH:mm:ss} ({(DateTime.Now - twitchLastMessageAt).TotalSeconds:0.0} secs ago). Hota: {hotaStatus}; last message at: {hotaLastMessageAt:yyyy-MM-dd HH:mm:ss} ({ (DateTime.Now - hotaLastMessageAt).TotalSeconds:0.0} secs ago)";
 		}
 
 		public static string JoinMeInvalidParameter(string senderName)
