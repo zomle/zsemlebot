@@ -4,7 +4,6 @@ using zsemlebot.twitch;
 
 namespace zsemlebot.services.Commands
 {
-
 	public class ChannelCommand : TwitchCommand
 	{
 		public override string Command { get { return Constants.Command_Channel; } }

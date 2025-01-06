@@ -826,14 +826,14 @@ namespace zsemlebot.hota
 			var maxPlayerCount = dataPackage.ReadByte(0x4D);
 			var isRanked = dataPackage.ReadByte(0x4E) == 1;
 			var isLoadGame = dataPackage.ReadByte(0x4F) == 1;
-			var currentNumberOfPlayers = dataPackage.ReadByte(0x50);
+			var currentNumberOfPlayers = dataPackage.ReadByte(0x54);
 
 			var joinedUserIds = new List<uint>();
 			for (int i = 0; i < currentNumberOfPlayers; i++)
 			{
-				joinedUserIds.Add(dataPackage.ReadUInt(0x51 + i * 4));
+				joinedUserIds.Add(dataPackage.ReadUInt(0x55 + i * 4));
 			}
-			var hostUserElo = dataPackage.ReadInt(0x76);
+			var hostUserElo = dataPackage.ReadInt(0x82);
 
 			EventLogger.LogEvent(dataPackage.Type, "game created", $"game id: {gameId.ToHexString()}; host user id: {hostUserId.ToHexString()} ({hostUserElo}); Joined users: {string.Join(", ", joinedUserIds.Select(u => u.ToHexString()))}");
 
