@@ -85,9 +85,13 @@ namespace zsemlebot.repository
 			return IgnoredTwitchUserIds.Contains(userId);
 		}
 
-        public TwitchUser GetUser(int userId)
+        public TwitchUser? GetUser(int userId)
         {
-            var userData = TwitchUsersById[userId];
+            if (!TwitchUsersById.TryGetValue(userId, out var userData))
+			{
+				return null;
+			}
+
             return new TwitchUser(userData.TwitchUserId, userData.DisplayName);
         }
 

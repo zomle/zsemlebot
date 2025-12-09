@@ -23,8 +23,8 @@ namespace zsemlebot.hota
 	public class LobbyClient : IDisposable
 	{
 		private readonly TimeSpan PingFrequency = TimeSpan.FromSeconds(30);
-		private readonly TimeSpan MaxWaitInConnectedState = TimeSpan.FromMinutes(1);
-		private readonly TimeSpan IdleTimeBeforeReconnect = TimeSpan.FromMinutes(5);
+		private readonly TimeSpan MaxWaitInConnectedState = TimeSpan.FromSeconds(30);
+		private readonly TimeSpan IdleTimeBeforeReconnect = TimeSpan.FromMinutes(10);
 
 		#region Events
 		private EventHandler<MessageReceivedArgs>? messageReceived;
@@ -196,7 +196,6 @@ namespace zsemlebot.hota
 					CurrentlyRequestedGameHistoryUserId = null;
 				}
 
-
 				Status = HotaClientStatus.Connected;
 				
 				StartPingThread();
@@ -213,6 +212,7 @@ namespace zsemlebot.hota
 			catch (Exception)
 			{
 				Status = HotaClientStatus.Disconnected;
+				SafeDispose(Socket);
 				return false;
 			}
 		}
@@ -307,10 +307,17 @@ namespace zsemlebot.hota
 
 		private void PingThreadWorker()
 		{
+			LastPingSentAt = DateTime.Now;
+
 			try
 			{
 				while (!disposedValue)
 				{
+					if (Status == HotaClientStatus.Disposing || Status == HotaClientStatus.Disconnected)
+					{
+						break;
+					}
+
 					if (Status == HotaClientStatus.Connected && DateTime.Now - LastStatusChangedAt > MaxWaitInConnectedState)
 					{
 						Status = HotaClientStatus.Disconnected;
@@ -330,18 +337,22 @@ namespace zsemlebot.hota
 					{
 						LastPingSentAt = DateTime.Now;
 						SendPing();
-						Thread.Sleep(1000);
 					}
-					else
-					{
-						Thread.Sleep(1000);
-						continue;
-					}
+
+					Thread.Sleep(1000);
 				}
 			}
 			catch (Exception)
 			{
 				Status = HotaClientStatus.Disconnected;
+			}
+			finally
+			{
+				if (Status != HotaClientStatus.Disposing)
+				{
+					Status = HotaClientStatus.Disconnected;
+				}
+				PingThread = null;
 			}
 		}
 
@@ -385,6 +396,13 @@ namespace zsemlebot.hota
 				{
 					var tmp = Socket.Send(bytes, sent, bytes.Length - sent, SocketFlags.None);
 					sent += tmp;
+				}
+			}
+			catch (SocketException se)
+			{
+				if (Status != HotaClientStatus.Disposing)
+				{
+					Status = HotaClientStatus.Disconnected;
 				}
 			}
 			catch (Exception e)
@@ -448,6 +466,24 @@ namespace zsemlebot.hota
 			catch (Exception)
 			{
 				Status = HotaClientStatus.Disconnected;
+			}
+			finally
+			{
+				if (Status != HotaClientStatus.Disposing)
+				{
+					Status = HotaClientStatus.Disconnected;
+				}
+
+				ReadThread = null;
+
+				SafeDispose(RawLogger);
+				RawLogger = HotaRawLogger.Null;
+
+				SafeDispose(EventLogger);
+				EventLogger = HotaEventLogger.Null;
+
+				SafeDispose(PackageLogger);
+				PackageLogger = HotaPackageLogger.Null;
 			}
 		}
 

@@ -12,7 +12,7 @@ namespace zsemlebot.wpf.ViewModels
         public MainViewModel(TwitchService twitchService, HotaService hotaService, BotService botService)
         {
             TwitchViewModel = new TwitchViewModel(twitchService);
-            HotaViewModel = new HotaViewModel(hotaService);
+            HotaViewModel = new HotaViewModel(hotaService, twitchService);
 			MaintenanceViewModel = new MaintenanceViewModel(botService);
         }
     }

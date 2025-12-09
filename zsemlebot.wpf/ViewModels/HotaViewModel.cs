@@ -130,8 +130,9 @@ namespace zsemlebot.wpf.ViewModels
 		public ObservableCollection<ChatMessage> Messages { get; }
 
 		private HotaService HotaService { get; }
+		private TwitchService TwitchService { get; }
 
-		public HotaViewModel(HotaService hotaService)
+		public HotaViewModel(HotaService hotaService, TwitchService twitchService)
 		{
 			lastMessageReceivedAt = "-";
 			lastPingSentAt = "-";
@@ -141,6 +142,7 @@ namespace zsemlebot.wpf.ViewModels
 			clientVersion = Config.Instance.Hota.ClientVersion;
 
 			HotaService = hotaService;
+			TwitchService = twitchService;
 
 			HotaService.PrivmsgReceived += HotaService_PrivmsgReceived;
 			HotaService.MessageReceived += HotaService_MessageReceived;
@@ -184,6 +186,14 @@ namespace zsemlebot.wpf.ViewModels
 			else
 			{
 				Status = $"{e.NewStatus} (min version: {e.MinimumClientVersion})";
+
+				if (e.NewStatus == HotaClientStatus.ObsoleteClient)
+				{
+					var adminUser = TwitchService.GetUser(Config.Instance.Twitch.AdminUserId);
+					var channel = $"#{Config.Instance.Twitch.AdminChannel}";
+
+					TwitchService.SendChatMessage(channel, $"{(adminUser == null ? "" : "@" + adminUser.DisplayName)} Lobby updated, new minimum client version: {e.MinimumClientVersion}");
+				}
 			}
 		}
 

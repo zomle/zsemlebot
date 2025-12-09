@@ -83,7 +83,7 @@ namespace zsemlebot.services
 
 		private BotService BotService { get; }
 
-		private static readonly int[] WaitTimesBetweenReconnect = { 2, 5, 10, 15, 30 };
+		private static readonly int[] WaitTimesBetweenReconnect = { 10, 20, 30, 45, 60 };
 
 		public HotaService(BotService botService)
 		{
@@ -136,6 +136,8 @@ namespace zsemlebot.services
 			var connected = Client.Connect();
 			if (!connected)
 			{
+				RemoveEventHandlers(Client);
+
 				Client.Dispose();
 				Client = null;
 
@@ -153,7 +155,7 @@ namespace zsemlebot.services
 				{
 					if (Client == null || Client.Status == HotaClientStatus.Initialized)
 					{
-						Thread.Sleep(750);
+						Thread.Sleep(1000);
 						continue;
 					}
 					else if (Client.Status == HotaClientStatus.Disconnected)
@@ -900,8 +902,7 @@ namespace zsemlebot.services
 			{
 				PauseUpdateNotifications = true;
 			}
-
-			if (e.NewStatus == HotaClientStatus.Disconnected)
+			else if (e.NewStatus == HotaClientStatus.Disconnected)
 			{
 				GameDirectory.Reset();
 				OnlineUsers.Clear();

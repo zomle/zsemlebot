@@ -32,11 +32,13 @@ namespace zsemlebot.core.Log
             {
                 if (disposing)
                 {
-                    if (Writer != null)
+                    if (Writer != null && Writer != BinaryWriter.Null)
                     {
                         Writer.Flush();
                         Writer.Dispose();
-                    }
+
+						Writer = BinaryWriter.Null;
+					}
                 }
 
                 disposedValue = true;

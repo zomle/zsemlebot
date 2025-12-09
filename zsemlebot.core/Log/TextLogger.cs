@@ -47,10 +47,12 @@ namespace zsemlebot.core.Log
 			{
 				if (disposing)
 				{
-					if (Writer != null)
+					if (Writer != null && Writer != StreamWriter.Null)
 					{
 						Writer.Flush();
 						Writer.Dispose();
+
+						Writer = StreamWriter.Null;
 					}
 				}
 

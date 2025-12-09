@@ -64,6 +64,11 @@ namespace zsemlebot.services
 			HotaService = hotaService;
 		}
 
+		public core.Domain.TwitchUser? GetUser(int userId)
+		{
+			return TwitchRepository.GetUser(userId);
+		}
+
 		public bool Connect()
 		{
 			if (Client != null)
