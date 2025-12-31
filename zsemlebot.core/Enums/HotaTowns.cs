@@ -14,6 +14,7 @@ namespace zsemlebot.core.Enums
 		Fortress = 0x7,
 		Conflux = 0x8,
 		Cove = 0x9,
-		Factory = 0xa
+		Factory = 0xa,
+		Bulwark = 0xb
 	}
 }
