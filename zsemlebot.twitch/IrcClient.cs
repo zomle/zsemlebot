@@ -138,6 +138,7 @@ namespace zsemlebot.twitch
 			catch (Exception)
 			{
 				Status = TwitchStatus.Disconnected;
+				SafeDispose(Socket);
 				return false;
 			}
 		}
@@ -343,8 +344,13 @@ namespace zsemlebot.twitch
 		{
 			try
 			{
-				while (true)
+				while (!disposedValue)
 				{
+					if (Status == TwitchStatus.Disposing || Status == TwitchStatus.Disconnected)
+					{
+						break;
+					}
+
 					var timeSinceLastMessage = DateTime.Now - LastMessageReceivedAt;
 					bool noMessagesForAWhile = timeSinceLastMessage > PingFrequency;
 					bool shouldPingAgain = LastMessageReceivedAt > LastPingSentAt || (DateTime.Now - LastPingSentAt > PingFrequency);
@@ -366,6 +372,14 @@ namespace zsemlebot.twitch
 			{
 				Status = TwitchStatus.Disconnected;
 			}
+			finally
+			{
+				if (Status != TwitchStatus.Disposing)
+				{
+					Status = TwitchStatus.Disconnected;
+				}
+				PingThread = null;
+			}
 		}
 
 		private void ReadThreadWorker()
@@ -374,7 +388,7 @@ namespace zsemlebot.twitch
 			{
 				var buffer = new CircularCharBuffer(1024 * 1024);
 
-				while (true)
+				while (!disposedValue)
 				{
 					if (Socket == null)
 					{
@@ -438,13 +452,28 @@ namespace zsemlebot.twitch
 			{
 				Status = TwitchStatus.Disconnected;
 			}
+			finally
+			{
+				if (Status != TwitchStatus.Disposing)
+				{
+					Status = TwitchStatus.Disconnected;
+				}
+
+				ReadThread = null;
+
+				SafeDispose(RawLogger);
+				RawLogger = TwitchRawLogger.Null;
+
+				SafeDispose(EventLogger);
+				EventLogger = TwitchEventLogger.Null;
+			}
 		}
 
 		private void SendThreadWorker()
 		{
 			try
 			{
-				while (true)
+				while (!disposedValue)
 				{
 					if (Socket == null)
 					{
@@ -480,6 +509,14 @@ namespace zsemlebot.twitch
 			catch (Exception)
 			{
 				Status = TwitchStatus.Disconnected;
+			}
+			finally
+			{
+				if (Status != TwitchStatus.Disposing)
+				{
+					Status = TwitchStatus.Disconnected;
+				}
+				SendThread = null;
 			}
 		}
 
@@ -603,6 +640,10 @@ namespace zsemlebot.twitch
 			{
 				if (disposing)
 				{
+					Status = TwitchStatus.Disposing;
+
+					Thread.Sleep(1000);
+
 					SafeAbort(SendThread);
 					SendThread = null;
 

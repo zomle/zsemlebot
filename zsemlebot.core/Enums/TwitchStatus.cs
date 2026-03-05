@@ -6,6 +6,7 @@
         Connecting,
         Connected,
         Authenticated,
-        Disconnected
+        Disconnected,
+        Disposing
     }
 }
