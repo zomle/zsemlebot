@@ -307,7 +307,12 @@ namespace zsemlebot.hota
 
 		private void PingThreadWorker()
 		{
+			DateTime reconnectAt = DateTime.Now.AddDays(1).AddMinutes(Random.Shared.Next(-30, 30));
+
 			LastPingSentAt = DateTime.Now;
+			
+
+			BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Ping Thread started, forced reconnect at:  {reconnectAt}.");
 
 			try
 			{
@@ -321,6 +326,13 @@ namespace zsemlebot.hota
 					if (Status == HotaClientStatus.Connected && DateTime.Now - LastStatusChangedAt > MaxWaitInConnectedState)
 					{
 						Status = HotaClientStatus.Disconnected;
+						break;
+					}
+
+					if (Status == HotaClientStatus.Connected && DateTime.Now > reconnectAt)
+					{
+						BotLogger.Instance.LogEvent(BotLogSource.Intrnl, $"Forced reconnection.");
+						SendExitLobby();
 						break;
 					}
 
