@@ -87,7 +87,7 @@ namespace zsemlebot.services
 				Client.Dispose();
 				Client = null;
 
-				statusChanged?.Invoke(this, new TwitchStatusChangedArgs(TwitchStatus.Initialized));
+				statusChanged?.Invoke(this, new TwitchStatusChangedArgs(TwitchStatus.Initialized, null));
 				return false;
 			}
 			return true;
@@ -99,14 +99,14 @@ namespace zsemlebot.services
 			{
 				while (true)
 				{
-					if (Client == null || Client.Status == TwitchStatus.Initialized)
+					if (Client == null || Client.Status == TwitchStatus.Initialized || Client.Status == TwitchStatus.Disposing)
 					{
 						Thread.Sleep(750);
 						continue;
 					}
 					else if (Client.Status == TwitchStatus.Disconnected)
 					{
-						Debug.WriteLine("HandleMessagesWorker - Disconnected");
+						BotLogger.Instance.LogEvent(BotLogSource.Twitch, "Twitch disconnected, reconnecting.");
 						if (!Reconnect())
 						{
 							ReconnectCount++;
@@ -171,6 +171,8 @@ namespace zsemlebot.services
 			}
 			else
 			{
+				tmpClient.StatusChanged -= Client_StatusChanged;
+				tmpClient.MessageReceived -= Client_MessageReceived;
 				return false;
 			}
 		}
@@ -334,6 +336,7 @@ namespace zsemlebot.services
 		private void Client_StatusChanged(object? sender, TwitchStatusChangedArgs e)
 		{
 			CurrentStatus = e.NewStatus;
+			IrcClient? client = e.Client as IrcClient;
 
 			statusChanged?.Invoke(sender, e);
 
@@ -341,8 +344,8 @@ namespace zsemlebot.services
 			{
 				var channel = $"#{Config.Instance.Twitch.AdminChannel}";
 
-				Client?.JoinChannel(channel);
-				Client?.SendPrivMsg(channel, "Arrived");
+				client?.JoinChannel(channel);
+				client?.SendPrivMsg(channel, "Arrived");
 
 				if (!Config.Instance.Global.IsTestMode)
 				{
@@ -350,7 +353,7 @@ namespace zsemlebot.services
 					foreach (var joinedChannel in joinedChannels)
 					{
 						var channelName = $"#{joinedChannel.DisplayName.ToLower()}";
-						Client?.JoinChannel(channelName);
+						client?.JoinChannel(channelName);
 					}
 				}
 			}

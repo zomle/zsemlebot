@@ -44,7 +44,7 @@ namespace zsemlebot.twitch
 				if (status != value)
 				{
 					status = value;
-					statusChanged?.Invoke(this, new TwitchStatusChangedArgs(value));
+					statusChanged?.Invoke(this, new TwitchStatusChangedArgs(value, this));
 				}
 			}
 		}
@@ -89,7 +89,7 @@ namespace zsemlebot.twitch
 		{
 			IncomingMessageQueue = new Queue<Message>();
 			OutgoingMessageQueue = new Queue<OutgoingMessage>();
-			JoinChannelQueue =new Queue<OutgoingMessage>();
+			JoinChannelQueue = new Queue<OutgoingMessage>();
 
 			Status = TwitchStatus.Initialized;
 
@@ -636,34 +636,41 @@ namespace zsemlebot.twitch
 		private bool disposedValue;
 		protected virtual void Dispose(bool disposing)
 		{
-			if (!disposedValue)
+			try
 			{
-				if (disposing)
+				if (!disposedValue)
 				{
-					Status = TwitchStatus.Disposing;
+					if (disposing)
+					{
+						Status = TwitchStatus.Disposing;
 
-					Thread.Sleep(1000);
+						Thread.Sleep(1000);
 
-					SafeAbort(SendThread);
-					SendThread = null;
+						SafeAbort(SendThread);
+						SendThread = null;
 
-					SafeAbort(PingThread);
-					PingThread = null;
+						SafeAbort(PingThread);
+						PingThread = null;
 
-					SafeAbort(ReadThread);
-					ReadThread = null;
+						SafeAbort(ReadThread);
+						ReadThread = null;
 
-					SafeDispose(Socket);
-					Socket = null;
+						SafeDispose(Socket);
+						Socket = null;
 
-					SafeDispose(RawLogger);
-					RawLogger = TwitchRawLogger.Null;
+						SafeDispose(RawLogger);
+						RawLogger = TwitchRawLogger.Null;
 
-					SafeDispose(EventLogger);
-					EventLogger = TwitchEventLogger.Null;
+						SafeDispose(EventLogger);
+						EventLogger = TwitchEventLogger.Null;
+					}
+
+					disposedValue = true;
 				}
-
-				disposedValue = true;
+			}
+			finally
+			{
+				Status = TwitchStatus.Disconnected;
 			}
 		}
 
